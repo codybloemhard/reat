@@ -35,6 +35,7 @@ name = "reat"
 version = "0.1.0"
 dependencies = [
  "xattr",
+ "zen-colour",
 ]
 
 [[package]]
@@ -132,3 +133,9 @@ dependencies = [
  "libc",
  "rustix",
 ]
+
+[[package]]
+name = "zen-colour"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e20be20a15971495a8143b271c6bcf6bf12ed6eb27ba040d46fd01345d244982"

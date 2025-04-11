@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 xattr = "1.5.0"
+zen-colour = "1.1.2"
