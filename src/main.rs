@@ -2,7 +2,7 @@ use std::{
     env,
     path::Path,
     process::ExitCode,
-    ffi::OsStr,
+    ffi::{ OsStr, OsString },
     // collections::VecDeque,
 };
 
@@ -14,21 +14,36 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
 
-    let mut paths = Vec::new();
+    let mut noncom = Vec::new();
     let mut list = true;
+    let mut get = true;
 
     for arg in env::args().skip(1) {
-        if arg != "list" && arg != "l" {
-            paths.push(arg);
+        if arg == "get" || arg == "g" {
+            list = false;
+            get = true;
+        } else if arg != "list" && arg != "l" {
+            noncom.push(arg);
         }
     }
 
     if list {
-        match &paths[..] {
+        match &noncom[..] {
             [] => println!("{BOLD}{RED}No {YELLOW}path{RED} provided!{RESET}"),
             [path] => print_list(path, false),
-            _ => for path in &paths {
+            _ => for path in &noncom {
                 print_list(path, true);
+            },
+        }
+    } else if get {
+        match &noncom[..] {
+            [] => println!(
+                "{BOLD}{RED}No {YELLOW} attribute{RED} and {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [_] => println!("{BOLD}{RED}No {YELLOW}path{RED} provided!{RESET}"),
+            [attr, path] => print_get(path, attr, false),
+            [attr, paths @ ..] => for path in paths {
+                print_get(path, attr, true);
             },
         }
     }
@@ -44,21 +59,23 @@ fn print_list<P: AsRef<Path> + std::fmt::Display>(path: P, print_filename: bool)
         );
         return;
     };
-    if print_filename {
-        println!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET}");
-    }
     let mut user = Vec::new();
     let mut system = Vec::new();
     let mut trusted = Vec::new();
     let mut security = Vec::new();
+    let mut empty = true;
     for attr in xattrs {
-        match get(&path, &attr) {
+        empty = false;
+        match get_osstr(&path, &attr) {
             Some(((key, KeyType::User), value)) => user.push((key, value)),
             Some(((key, KeyType::System), value)) => system.push((key, value)),
             Some(((key, KeyType::Trusted), value)) => trusted.push((key, value)),
             Some(((key, KeyType::Security), value)) => security.push((key, value)),
             None => { },
         }
+    }
+    if print_filename && !empty {
+        println!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET}");
     }
     for (key, value) in user {
         println!("  {BOLD}{key}{RESET}: {value}");
@@ -74,7 +91,28 @@ fn print_list<P: AsRef<Path> + std::fmt::Display>(path: P, print_filename: bool)
     }
 }
 
-fn get<P: AsRef<Path>>(path: P, key: &OsStr) -> Option<((String, KeyType), String)> {
+fn print_get<P: AsRef<Path> + std::fmt::Display>(path: P, key: &str, print_filename: bool) {
+    if let Some(((key, ktype), value)) = get(&path, key) {
+        if print_filename {
+            print!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET} ");
+        }
+        match ktype {
+            KeyType::User => { },
+            KeyType::System => print!("{MAGENTA}(system) {RESET}"),
+            KeyType::Trusted => print!("{MAGENTA}(trusted) {RESET}"),
+            KeyType::Security => print!("{MAGENTA}(security) {RESET}"),
+        }
+        println!("{BOLD}{key}{RESET}: {value}");
+    }
+}
+
+fn get<P: AsRef<Path>>(path: P, key: &str) -> Option<((String, KeyType), String)> {
+    let mut osstr = OsString::from("user.");
+    osstr.push(key);
+    get_osstr(path, &osstr)
+}
+
+fn get_osstr<P: AsRef<Path>>(path: P, key: &OsStr) -> Option<((String, KeyType), String)> {
     if let Some(key) = key.to_str() {
         let val = xattr::get(path, key);
         if let Ok(Some(val)) = val {
