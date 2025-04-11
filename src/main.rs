@@ -1,13 +1,52 @@
-use std::path::Path;
-use std::ffi::OsStr;
+use std::{
+    env,
+    path::Path,
+    process::ExitCode,
+    ffi::OsStr,
+    // collections::VecDeque,
+};
+
 use zen_colour::*;
 
-fn main() {
-    print_list("./test");
+fn main() -> ExitCode {
+    if !xattr::SUPPORTED_PLATFORM {
+        println!("{BOLD}{RED}This platform does not support {DEFAULT}xattr{RED}.{RESET}");
+        return ExitCode::FAILURE;
+    }
+
+    let mut paths = Vec::new();
+    let mut list = true;
+
+    for arg in env::args().skip(1) {
+        if arg != "list" && arg != "l" {
+            paths.push(arg);
+        }
+    }
+
+    if list {
+        match &paths[..] {
+            [] => println!("{BOLD}{RED}No {YELLOW}path{RED} provided!{RESET}"),
+            [path] => print_list(path, false),
+            _ => for path in &paths {
+                print_list(path, true);
+            },
+        }
+    }
+
+    ExitCode::SUCCESS
 }
 
-fn print_list<P: AsRef<Path>>(path: P) {
-    let xattrs = xattr::list(&path).unwrap();
+fn print_list<P: AsRef<Path> + std::fmt::Display>(path: P, print_filename: bool) {
+    let xattrs = if let Ok(xs) = xattr::list(&path) { xs }
+    else {
+        println!(
+            "{BOLD}{GREEN}{path}{RESET}{RED}{BOLD}: could not list {YELLOW}attributes{RED}.{RESET}"
+        );
+        return;
+    };
+    if print_filename {
+        println!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET}");
+    }
     let mut user = Vec::new();
     let mut system = Vec::new();
     let mut trusted = Vec::new();
@@ -25,13 +64,13 @@ fn print_list<P: AsRef<Path>>(path: P) {
         println!("  {BOLD}{key}{RESET}: {value}");
     }
     for (key, value) in system {
-        println!("  {MAGENTA}(system){RESET}{BOLD}{key}{RESET}: {value}");
+        println!("  {MAGENTA}(system) {RESET}{BOLD}{key}{RESET}: {value}");
     }
     for (key, value) in trusted {
-        println!("  {MAGENTA}(trusted){RESET}{BOLD}{key}{RESET}: {value}");
+        println!("  {MAGENTA}(trusted) {RESET}{BOLD}{key}{RESET}: {value}");
     }
     for (key, value) in security {
-        println!("  {MAGENTA}(security){RESET}{BOLD}{key}{RESET}: {value}");
+        println!("  {MAGENTA}(security) {RESET}{BOLD}{key}{RESET}: {value}");
     }
 }
 
