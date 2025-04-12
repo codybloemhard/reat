@@ -20,6 +20,7 @@ fn main() -> ExitCode {
     let mut list = true;
     let mut get = false;
     let mut set = false;
+    let mut rem = false;
 
     for arg in env::args().skip(1) {
         if arg == "get" || arg == "g" {
@@ -27,6 +28,9 @@ fn main() -> ExitCode {
             list = false;
         } else if arg == "set" || arg == "s" {
             set = true;
+            list = false;
+        } else if arg == "remove" || arg == "r" {
+            rem = true;
             list = false;
         }
         else if arg == "verbose" || arg == "v" {
@@ -71,6 +75,19 @@ fn main() -> ExitCode {
             [attr, value, path] => print_set(path, attr, value, false),
             [attr, value, paths @ ..] => for path in paths {
                 print_set(path, attr, value, true);
+            },
+        }
+    } else if rem {
+        match &noncom[..] {
+            [] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} and {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [_] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [attr, path] => print_remove(path, attr, false),
+            [attr, paths @ ..] => for path in paths {
+                print_remove(path, attr, true);
             },
         }
     }
@@ -187,6 +204,37 @@ fn set<P: AsRef<Path>>(path: P, key: &str, value: &str) -> Result<Option<String>
 
 fn set_raw<P: AsRef<Path>>(path: P, key: &str, value: &str) -> bool {
     xattr::set(path, "user.".to_string() + key, &Vec::<u8>::from(value)).is_ok()
+}
+
+fn print_remove<P: AsRef<Path> + Display>(path: P, key: &str, print_filename: bool) {
+    if print_filename {
+        print!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET} ");
+    }
+    match remove(path, key) {
+        Ok(Some(old)) => println!(
+            "{GREEN}Attribute {DEFAULT}{key}{GREEN} {YELLOW}removed{GREEN} successfully.
+  Old value was \"{RESET}{old}{GREEN}\".{RESET}"
+        ),
+        Ok(None) => println!(
+            "{GREEN}Attribute {DEFAULT}{key}{GREEN} {YELLOW}removed{GREEN} successfully.{RESET}"
+        ),
+        Err(_) => println!(
+            "{BOLD}{RED}Could not {YELLOW}remove{RED} attribute {DEFAULT}{key}{RED}.{RESET}"
+        ),
+    }
+}
+
+fn remove<P: AsRef<Path>>(path: P, key: &str) -> Result<Option<String>, ()> {
+    let old_val = if let Some((_, value)) = get(&path, key) { Some(value) } else { None };
+    if remove_raw(path, key) {
+        Ok(old_val)
+    } else {
+        Err(())
+    }
+}
+
+fn remove_raw<P: AsRef<Path>>(path: P, key: &str) -> bool {
+    xattr::remove(path, "user.".to_string() + key).is_ok()
 }
 
 fn split_key(key: &str) -> (&str, KeyType) {
