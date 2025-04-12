@@ -18,16 +18,20 @@ fn main() -> ExitCode {
     let mut noncom = Vec::new();
     let mut verbose = false;
     let mut list = true;
-    let mut get = true;
+    let mut get = false;
+    let mut set = false;
 
     for arg in env::args().skip(1) {
         if arg == "get" || arg == "g" {
-            list = false;
             get = true;
-        } else if arg == "verbose" || arg == "v" {
-            verbose = true;
+            list = false;
+        } else if arg == "set" || arg == "s" {
+            set = true;
+            list = false;
         }
-        else if arg != "list" && arg != "l" {
+        else if arg == "verbose" || arg == "v" {
+            verbose = true;
+        } else if arg != "list" && arg != "l" {
             noncom.push(arg);
         }
     }
@@ -51,6 +55,22 @@ fn main() -> ExitCode {
             [attr, path] => print_get(path, attr, false, verbose),
             [attr, paths @ ..] => for path in paths {
                 print_get(path, attr, true, verbose);
+            },
+        }
+    } else if set {
+        match &noncom[..] {
+            [] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED}, {YELLOW}value{RED} and {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [_] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [_, _] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [attr, value, path] => print_set(path, attr, value, false),
+            [attr, value, paths @ ..] => for path in paths {
+                print_set(path, attr, value, true);
             },
         }
     }
@@ -136,6 +156,37 @@ fn get_osstr<P: AsRef<Path>>(path: P, key: &OsStr) -> Option<((String, KeyType),
         }
     }
     None
+}
+
+fn print_set<P: AsRef<Path> + Display>(path: P, key: &str, value: &str, print_filename: bool) {
+    if print_filename {
+        print!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET} ");
+    }
+    match set(path, key, value) {
+        Ok(Some(old)) => println!(
+            "{GREEN}Attribute {DEFAULT}{key}{GREEN} {YELLOW}overwritten{GREEN} successfully.
+  Old value was \"{RESET}{old}{GREEN}\".{RESET}"
+        ),
+        Ok(None) => println!(
+            "{GREEN}Attribute {DEFAULT}{key}{GREEN} {YELLOW}set{GREEN} successfully.{RESET}"
+        ),
+        Err(_) => println!(
+            "{BOLD}{RED}Could not {YELLOW}set{RED} attribute {DEFAULT}{key}{RED}.{RESET}"
+        ),
+    }
+}
+
+fn set<P: AsRef<Path>>(path: P, key: &str, value: &str) -> Result<Option<String>, ()> {
+    let old_val = if let Some((_, value)) = get(&path, key) { Some(value) } else { None };
+    if set_raw(path, key, value) {
+        Ok(old_val)
+    } else {
+        Err(())
+    }
+}
+
+fn set_raw<P: AsRef<Path>>(path: P, key: &str, value: &str) -> bool {
+    xattr::set(path, "user.".to_string() + key, &Vec::<u8>::from(value)).is_ok()
 }
 
 fn split_key(key: &str) -> (&str, KeyType) {
