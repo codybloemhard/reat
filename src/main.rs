@@ -3,6 +3,7 @@ use std::{
     path::Path,
     process::ExitCode,
     ffi::{ OsStr, OsString },
+    fmt::Display,
     // collections::VecDeque,
 };
 
@@ -15,6 +16,7 @@ fn main() -> ExitCode {
     }
 
     let mut noncom = Vec::new();
+    let mut verbose = false;
     let mut list = true;
     let mut get = true;
 
@@ -22,7 +24,10 @@ fn main() -> ExitCode {
         if arg == "get" || arg == "g" {
             list = false;
             get = true;
-        } else if arg != "list" && arg != "l" {
+        } else if arg == "verbose" || arg == "v" {
+            verbose = true;
+        }
+        else if arg != "list" && arg != "l" {
             noncom.push(arg);
         }
     }
@@ -30,20 +35,22 @@ fn main() -> ExitCode {
     if list {
         match &noncom[..] {
             [] => println!("{BOLD}{RED}No {YELLOW}path{RED} provided!{RESET}"),
-            [path] => print_list(path, false),
+            [path] => print_list(path, false, verbose),
             _ => for path in &noncom {
-                print_list(path, true);
+                print_list(path, true, verbose);
             },
         }
     } else if get {
         match &noncom[..] {
             [] => println!(
-                "{BOLD}{RED}No {YELLOW} attribute{RED} and {YELLOW}path{RED} provided!{RESET}"
+                "{BOLD}{RED}No {YELLOW}attribute{RED} and {YELLOW}path{RED} provided!{RESET}"
             ),
-            [_] => println!("{BOLD}{RED}No {YELLOW}path{RED} provided!{RESET}"),
-            [attr, path] => print_get(path, attr, false),
+            [_] => println!(
+                "{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [attr, path] => print_get(path, attr, false, verbose),
             [attr, paths @ ..] => for path in paths {
-                print_get(path, attr, true);
+                print_get(path, attr, true, verbose);
             },
         }
     }
@@ -51,11 +58,11 @@ fn main() -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn print_list<P: AsRef<Path> + std::fmt::Display>(path: P, print_filename: bool) {
+fn print_list<P: AsRef<Path> + Display>(path: P, print_filename: bool, verbose: bool) {
     let xattrs = if let Ok(xs) = xattr::list(&path) { xs }
     else {
         println!(
-            "{BOLD}{GREEN}{path}{RESET}{RED}{BOLD}: could not list {YELLOW}attributes{RED}.{RESET}"
+            "{BOLD}{GREEN}{path}{RESET}{RED}{BOLD}: could not {YELLOW}list{RED} attributes.{RESET}"
         );
         return;
     };
@@ -74,8 +81,10 @@ fn print_list<P: AsRef<Path> + std::fmt::Display>(path: P, print_filename: bool)
             None => { },
         }
     }
-    if print_filename && !empty {
+    if (print_filename || verbose) && !empty {
         println!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET}");
+    } else if verbose && empty {
+        println!("{BOLD}{GREEN}{path}{RESET}{GREEN}: {RED}{BOLD}❌{RESET}");
     }
     for (key, value) in user {
         println!("  {BOLD}{key}{RESET}: {value}");
@@ -91,7 +100,7 @@ fn print_list<P: AsRef<Path> + std::fmt::Display>(path: P, print_filename: bool)
     }
 }
 
-fn print_get<P: AsRef<Path> + std::fmt::Display>(path: P, key: &str, print_filename: bool) {
+fn print_get<P: AsRef<Path> + Display>(path: P, key: &str, print_filename: bool, verbose: bool) {
     if let Some(((key, ktype), value)) = get(&path, key) {
         if print_filename {
             print!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET} ");
@@ -103,6 +112,10 @@ fn print_get<P: AsRef<Path> + std::fmt::Display>(path: P, key: &str, print_filen
             KeyType::Security => print!("{MAGENTA}(security) {RESET}"),
         }
         println!("{BOLD}{key}{RESET}: {value}");
+    } else if !print_filename {
+        println!("{BOLD}{RED}Could not {YELLOW}get{RED} attribute {DEFAULT}{key}{RED}.{RESET}");
+    } else if verbose {
+        println!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET}{BOLD}{key}{RESET}: {RED} ❌{RESET}");
     }
 }
 
