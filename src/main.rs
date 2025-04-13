@@ -22,6 +22,7 @@ fn main() -> ExitCode {
     let mut set = false;
     let mut rem = false;
     let mut add = false;
+    let mut cut = false;
 
     for arg in env::args().skip(1) {
         if arg == "get" || arg == "g" {
@@ -35,6 +36,9 @@ fn main() -> ExitCode {
             list = false;
         } else if arg == "add" || arg == "a" {
             add = true;
+            list = false;
+        } else if arg == "cut" || arg == "c" {
+            cut = true;
             list = false;
         }
         else if arg == "verbose" || arg == "v" {
@@ -108,6 +112,22 @@ fn main() -> ExitCode {
             [attr, value, path] => print_add_list(path, attr, value, false),
             [attr, value, paths @ ..] => for path in paths {
                 print_add_list(path, attr, value, true);
+            },
+        }
+    } else if cut {
+        match &noncom[..] {
+            [] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED}, {YELLOW}value{RED} and {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [_] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [_, _] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [attr, value, path] => print_cut_list(path, attr, value, false, verbose),
+            [attr, value, paths @ ..] => for path in paths {
+                print_cut_list(path, attr, value, true, verbose);
             },
         }
     }
@@ -263,6 +283,52 @@ fn print_remove<P: AsRef<Path> + Display>(path: P, key: &str, print_filename: bo
         Err(_) => println!(
             "{BOLD}{RED}Could not {YELLOW}remove{RED} attribute {DEFAULT}{key}{RED}.{RESET}"
         ),
+    }
+}
+
+fn print_cut_list<P: AsRef<Path> + Display>(
+    path: P, key: &str, value: &str, print_filename: bool, verbose: bool
+) {
+    let res = cut_list(&path, key, value);
+    if print_filename && (res.is_some() || verbose) {
+        print!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET} ");
+    }
+    match res {
+        Some(true) => println!(
+            "{GREEN}Successfully {YELLOW}cut{GREEN} {DEFAULT}{value}{GREEN} from {DEFAULT}{key}{GREEN}.{RESET}"
+        ),
+        Some(false) => println!(
+            "{BOLD}{RED}Could not {YELLOW}cut{RED} {DEFAULT}{value}{RED} from {DEFAULT}{key}{RED}.{RESET}"
+        ),
+        None if verbose || !print_filename => println!(
+            "{GREEN}No {YELLOW}cut{GREEN} required.{RESET}"
+        ),
+        None => { },
+    }
+}
+
+fn cut_list<P: AsRef<Path>>(path: P, key: &str, value: &str) -> Option<bool> {
+    if let Some((_, old_value)) = get(&path, key) {
+        let mut list = old_value.split(',').collect::<Vec<_>>();
+        let old_len = list.len();
+        list.retain(|item| *item != value);
+        let new_len = list.len();
+        if old_len == new_len {
+            return None;
+        }
+        let mut res = String::new();
+        for item in list {
+            res.push_str(item);
+            res.push(',');
+        }
+        res.pop();
+        if set_raw(path, key, &res) {
+            Some(true)
+        } else {
+            Some(false)
+        }
+    } else {
+        None
     }
 }
 
