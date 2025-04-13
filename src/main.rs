@@ -21,6 +21,7 @@ fn main() -> ExitCode {
     let mut get = false;
     let mut set = false;
     let mut rem = false;
+    let mut add = false;
 
     for arg in env::args().skip(1) {
         if arg == "get" || arg == "g" {
@@ -31,6 +32,9 @@ fn main() -> ExitCode {
             list = false;
         } else if arg == "remove" || arg == "r" {
             rem = true;
+            list = false;
+        } else if arg == "add" || arg == "a" {
+            add = true;
             list = false;
         }
         else if arg == "verbose" || arg == "v" {
@@ -88,6 +92,22 @@ fn main() -> ExitCode {
             [attr, path] => print_remove(path, attr, false),
             [attr, paths @ ..] => for path in paths {
                 print_remove(path, attr, true);
+            },
+        }
+    } else if add {
+        match &noncom[..] {
+            [] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED}, {YELLOW}value{RED} and {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [_] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [_, _] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [attr, value, path] => print_add_list(path, attr, value, false),
+            [attr, value, paths @ ..] => for path in paths {
+                print_add_list(path, attr, value, true);
             },
         }
     }
@@ -190,6 +210,28 @@ fn print_set<P: AsRef<Path> + Display>(path: P, key: &str, value: &str, print_fi
         Err(_) => println!(
             "{BOLD}{RED}Could not {YELLOW}set{RED} attribute {DEFAULT}{key}{RED}.{RESET}"
         ),
+    }
+}
+
+fn print_add_list<P: AsRef<Path> + Display>(path: P, key: &str, value: &str, print_filename: bool) {
+    if print_filename {
+        print!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET} ");
+    }
+    match add_list(path, key, value) {
+        Ok(_) => println!(
+            "{YELLOW}Added{GREEN} list item to {DEFAULT}{key}{GREEN} successfully.{RESET}"
+        ),
+        Err(_) => println!(
+            "{BOLD}{RED}Could not {YELLOW}add{RED} to attribute {DEFAULT}{key}{RED}.{RESET}"
+        ),
+    }
+}
+
+fn add_list<P: AsRef<Path>>(path: P, key: &str, value: &str) -> Result<Option<String>, ()> {
+    if let Some((_, old_value)) = get(&path, key) {
+        set(path, key, &(old_value + "," + value))
+    } else {
+        set(path, key, value)
     }
 }
 

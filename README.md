@@ -7,6 +7,7 @@ ergonomics
 set
 get
 list
+remove
 tags, append
 dump, restore
 colourz
