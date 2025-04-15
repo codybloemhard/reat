@@ -2,15 +2,18 @@
 
 Tool for ergonomic use of extended attributes of filesystem objects.
 
-reat xattr
+Rust Extended ATtribute
 ergonomics
+colours
 set
 get
 list
 remove
-tags, append
+add
+cut
+tags
+multi tag multi file
 dump, restore
-colourz
 index
 workflows
 sort

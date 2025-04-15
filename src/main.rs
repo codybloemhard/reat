@@ -16,8 +16,9 @@ fn main() -> ExitCode {
     }
 
     let mut noncom = Vec::new();
+    let mut mode_set = false;
     let mut verbose = false;
-    let mut list = true;
+    let mut list = false;
     let mut get = false;
     let mut set = false;
     let mut rem = false;
@@ -25,27 +26,35 @@ fn main() -> ExitCode {
     let mut cut = false;
 
     for arg in env::args().skip(1) {
-        if arg == "get" || arg == "g" {
+        if (arg == "list" || arg == "l") && !mode_set {
+            list = true;
+            mode_set = true;
+        } else if (arg == "get" || arg == "g") && !mode_set {
             get = true;
-            list = false;
-        } else if arg == "set" || arg == "s" {
+            mode_set = true;
+        } else if (arg == "set" || arg == "s") && !mode_set {
             set = true;
-            list = false;
-        } else if arg == "remove" || arg == "r" {
+            mode_set = true;
+            println!("set SET");
+        } else if (arg == "remove" || arg == "r") && !mode_set {
             rem = true;
-            list = false;
-        } else if arg == "add" || arg == "a" {
+            mode_set = true;
+        } else if (arg == "add" || arg == "a") && !mode_set {
             add = true;
-            list = false;
-        } else if arg == "cut" || arg == "c" {
+            mode_set = true;
+        } else if (arg == "cut" || arg == "c") && !mode_set {
             cut = true;
-            list = false;
+            mode_set = true;
         }
-        else if arg == "verbose" || arg == "v" {
+        else if (arg == "verbose" || arg == "v") && !verbose {
             verbose = true;
-        } else if arg != "list" && arg != "l" {
+        } else {
             noncom.push(arg);
         }
+    }
+
+    if !mode_set {
+        list = true;
     }
 
     if list {
