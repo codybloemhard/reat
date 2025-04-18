@@ -15,106 +15,131 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
 
-    let mut filtered = Vec::new();
+    let mut noncom = Vec::new();
+    let mut mode_set = false;
     let mut verbose = false;
+    let mut list = false;
+    let mut get = false;
+    let mut set = false;
+    let mut rem = false;
+    let mut add = false;
+    let mut cut = false;
+
     for arg in env::args().skip(1) {
-        if (arg == "verbose" || arg == "v") && !verbose {
+        if (arg == "list" || arg == "l") && !mode_set {
+            list = true;
+            mode_set = true;
+        } else if (arg == "get" || arg == "g") && !mode_set {
+            get = true;
+            mode_set = true;
+        } else if (arg == "set" || arg == "s") && !mode_set {
+            set = true;
+            mode_set = true;
+            println!("set SET");
+        } else if (arg == "remove" || arg == "r") && !mode_set {
+            rem = true;
+            mode_set = true;
+        } else if (arg == "add" || arg == "a") && !mode_set {
+            add = true;
+            mode_set = true;
+        } else if (arg == "cut" || arg == "c") && !mode_set {
+            cut = true;
+            mode_set = true;
+        }
+        else if (arg == "verbose" || arg == "v") && !verbose {
             verbose = true;
         } else {
-            filtered.push(arg);
+            noncom.push(arg);
         }
     }
-    // just so I can pattern match '["get", attr, path] => '
-    // instead of '[get, attr, path] if get == "get" => '
-    let reffed = filtered.iter().map(|s| s.as_ref()).collect::<Vec::<&str>>();
 
-    match &reffed[..] {
-        [] => println!("{BOLD}{RED}No {YELLOW}path{RED} provided!{RESET}"),
-        ["get"] => println!(
-            "{BOLD}{RED}No {YELLOW}attribute{RED} and {YELLOW}path{RED} provided!{RESET}"
-        ),
-        ["get", _] => println!(
-            "{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}path{RED} provided!{RESET}"
-        ),
-        ["get", attrs @ .., "f", path] => for attr in attrs {
-            print_get(path, attr, true, verbose);
-        },
-// oof
-// ["get", attrs @ .., "f", paths @ ..] => for path in paths { for attr in attrs {
-//                 --               ^^ can only be used once per slice pattern
-        ["get", attrs @ .., "f", paths @ ..] => for path in paths { for attr in attrs {
-            print_get(path, attr, true, verbose);
-        }},
-        ["get", attr, path] => print_get(path, attr, false, verbose),
-        ["get", attr, paths @ ..] => for path in paths { print_get(path, attr, true, verbose); },
-        [path] => print_list(path, false, verbose),
-        _ => for path in &filtered {
-            print_list(path, true, verbose);
-        },
+    if !mode_set {
+        list = true;
     }
 
-//     } else if set {
-//         match &noncom[..] {
-//             [] => println!(
-// "{BOLD}{RED}No {YELLOW}attribute{RED}, {YELLOW}value{RED} and {YELLOW}path{RED} provided!{RESET}"
-//             ),
-//             [_] => println!(
-// "{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
-//             ),
-//             [_, _] => println!(
-// "{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
-//             ),
-//             [attr, value, path] => print_set(path, attr, value, false),
-//             [attr, value, paths @ ..] => for path in paths {
-//                 print_set(path, attr, value, true);
-//             },
-//         }
-//     } else if rem {
-//         match &noncom[..] {
-//             [] => println!(
-// "{BOLD}{RED}No {YELLOW}attribute{RED} and {YELLOW}path{RED} provided!{RESET}"
-//             ),
-//             [_] => println!(
-// "{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}path{RED} provided!{RESET}"
-//             ),
-//             [attr, path] => print_remove(path, attr, false),
-//             [attr, paths @ ..] => for path in paths {
-//                 print_remove(path, attr, true);
-//             },
-//         }
-//     } else if add {
-//         match &noncom[..] {
-//             [] => println!(
-// "{BOLD}{RED}No {YELLOW}attribute{RED}, {YELLOW}value{RED} and {YELLOW}path{RED} provided!{RESET}"
-//             ),
-//             [_] => println!(
-// "{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
-//             ),
-//             [_, _] => println!(
-// "{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
-//             ),
-//             [attr, value, path] => print_add_list(path, attr, value, false),
-//             [attr, value, paths @ ..] => for path in paths {
-//                 print_add_list(path, attr, value, true);
-//             },
-//         }
-//     } else if cut {
-//         match &noncom[..] {
-//             [] => println!(
-// "{BOLD}{RED}No {YELLOW}attribute{RED}, {YELLOW}value{RED} and {YELLOW}path{RED} provided!{RESET}"
-//             ),
-//             [_] => println!(
-// "{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
-//             ),
-//             [_, _] => println!(
-// "{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
-//             ),
-//             [attr, value, path] => print_cut_list(path, attr, value, false, verbose),
-//             [attr, value, paths @ ..] => for path in paths {
-//                 print_cut_list(path, attr, value, true, verbose);
-//             },
-//         }
-//     }
+    if list {
+        match &noncom[..] {
+            [] => println!("{BOLD}{RED}No {YELLOW}path{RED} provided!{RESET}"),
+            [path] => print_list(path, false, verbose),
+            _ => for path in &noncom {
+                print_list(path, true, verbose);
+            },
+        }
+    } else if get {
+        match &noncom[..] {
+            [] => println!(
+                "{BOLD}{RED}No {YELLOW}attribute{RED} and {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [_] => println!(
+                "{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [attr, path] => print_get(path, attr, false, verbose),
+            [attr, paths @ ..] => for path in paths {
+                print_get(path, attr, true, verbose);
+            },
+        }
+    } else if set {
+        match &noncom[..] {
+            [] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED}, {YELLOW}value{RED} and {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [_] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [_, _] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [attr, value, path] => print_set(path, attr, value, false),
+            [attr, value, paths @ ..] => for path in paths {
+                print_set(path, attr, value, true);
+            },
+        }
+    } else if rem {
+        match &noncom[..] {
+            [] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} and {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [_] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [attr, path] => print_remove(path, attr, false),
+            [attr, paths @ ..] => for path in paths {
+                print_remove(path, attr, true);
+            },
+        }
+    } else if add {
+        match &noncom[..] {
+            [] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED}, {YELLOW}value{RED} and {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [_] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [_, _] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [attr, value, path] => print_add_list(path, attr, value, false),
+            [attr, value, paths @ ..] => for path in paths {
+                print_add_list(path, attr, value, true);
+            },
+        }
+    } else if cut {
+        match &noncom[..] {
+            [] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED}, {YELLOW}value{RED} and {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [_] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [_, _] => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
+            ),
+            [attr, value, path] => print_cut_list(path, attr, value, false, verbose),
+            [attr, value, paths @ ..] => for path in paths {
+                print_cut_list(path, attr, value, true, verbose);
+            },
+        }
+    }
 
     ExitCode::SUCCESS
 }
@@ -176,7 +201,7 @@ fn print_get<P: AsRef<Path> + Display>(path: P, key: &str, print_filename: bool,
     } else if !print_filename {
         println!("{BOLD}{RED}Could not {YELLOW}get{RED} attribute {DEFAULT}{key}{RED}.{RESET}");
     } else if verbose {
-        println!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET} {BOLD}{key}{RESET}: {RED} ❌{RESET}");
+        println!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET}{BOLD}{key}{RESET}: {RED} ❌{RESET}");
     }
 }
 
