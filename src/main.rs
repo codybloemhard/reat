@@ -15,130 +15,193 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
 
-    let mut noncom = Vec::new();
-    let mut mode_set = false;
     let mut verbose = false;
-    let mut list = false;
-    let mut get = false;
-    let mut set = false;
-    let mut rem = false;
-    let mut add = false;
-    let mut cut = false;
+    let mut into_a = false;
+    let mut mode = ' ';
+    let mut a = Vec::new();
+    let mut b = Vec::new();
 
     for arg in env::args().skip(1) {
-        if (arg == "list" || arg == "l") && !mode_set {
-            list = true;
-            mode_set = true;
-        } else if (arg == "get" || arg == "g") && !mode_set {
-            get = true;
-            mode_set = true;
-        } else if (arg == "set" || arg == "s") && !mode_set {
-            set = true;
-            mode_set = true;
-            println!("set SET");
-        } else if (arg == "remove" || arg == "r") && !mode_set {
-            rem = true;
-            mode_set = true;
-        } else if (arg == "add" || arg == "a") && !mode_set {
-            add = true;
-            mode_set = true;
-        } else if (arg == "cut" || arg == "c") && !mode_set {
-            cut = true;
-            mode_set = true;
-        }
-        else if (arg == "verbose" || arg == "v") && !verbose {
+        if (arg == "verbose" || arg == "v") && !verbose {
             verbose = true;
-        } else {
-            noncom.push(arg);
+        }
+        else if arg == "-" {
+            into_a = false;
+        }
+        else if (arg == "list" || arg == "l") && mode == ' ' {
+            mode = 'l';
+            into_a = true;
+        }
+        else if (arg == "get" || arg == "g") && mode == ' ' {
+            mode = 'g';
+            into_a = true;
+        }
+        else if (arg == "set" || arg == "s") && mode == ' ' {
+            mode = 's';
+            into_a = true;
+        }
+        else if (arg == "rem" || arg == "r") && mode == ' ' {
+            mode = 'r';
+            into_a = true;
+        }
+        else if (arg == "add" || arg == "a") && mode == ' ' {
+            mode = 'a';
+            into_a = true;
+        }
+        else if (arg == "cut" || arg == "c") && mode == ' ' {
+            mode = 'c';
+            into_a = true;
+        }
+        else if into_a {
+            a.push(arg);
+        }
+        else {
+            b.push(arg);
         }
     }
 
-    if !mode_set {
-        list = true;
+    if mode == ' ' {
+        mode = 'l';
     }
 
-    if list {
-        match &noncom[..] {
-            [] => println!("{BOLD}{RED}No {YELLOW}path{RED} provided!{RESET}"),
-            [path] => print_list(path, false, verbose),
-            _ => for path in &noncom {
-                print_list(path, true, verbose);
-            },
-        }
-    } else if get {
-        match &noncom[..] {
-            [] => println!(
-                "{BOLD}{RED}No {YELLOW}attribute{RED} and {YELLOW}path{RED} provided!{RESET}"
-            ),
-            [_] => println!(
-                "{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}path{RED} provided!{RESET}"
-            ),
-            [attr, path] => print_get(path, attr, false, verbose),
-            [attr, paths @ ..] => for path in paths {
-                print_get(path, attr, true, verbose);
-            },
-        }
-    } else if set {
-        match &noncom[..] {
-            [] => println!(
-"{BOLD}{RED}No {YELLOW}attribute{RED}, {YELLOW}value{RED} and {YELLOW}path{RED} provided!{RESET}"
-            ),
-            [_] => println!(
-"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
-            ),
-            [_, _] => println!(
-"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
-            ),
-            [attr, value, path] => print_set(path, attr, value, false),
-            [attr, value, paths @ ..] => for path in paths {
-                print_set(path, attr, value, true);
-            },
-        }
-    } else if rem {
-        match &noncom[..] {
-            [] => println!(
-"{BOLD}{RED}No {YELLOW}attribute{RED} and {YELLOW}path{RED} provided!{RESET}"
-            ),
-            [_] => println!(
-"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}path{RED} provided!{RESET}"
-            ),
-            [attr, path] => print_remove(path, attr, false),
-            [attr, paths @ ..] => for path in paths {
-                print_remove(path, attr, true);
-            },
-        }
-    } else if add {
-        match &noncom[..] {
-            [] => println!(
-"{BOLD}{RED}No {YELLOW}attribute{RED}, {YELLOW}value{RED} and {YELLOW}path{RED} provided!{RESET}"
-            ),
-            [_] => println!(
-"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
-            ),
-            [_, _] => println!(
-"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
-            ),
-            [attr, value, path] => print_add_list(path, attr, value, false),
-            [attr, value, paths @ ..] => for path in paths {
-                print_add_list(path, attr, value, true);
-            },
-        }
-    } else if cut {
-        match &noncom[..] {
-            [] => println!(
-"{BOLD}{RED}No {YELLOW}attribute{RED}, {YELLOW}value{RED} and {YELLOW}path{RED} provided!{RESET}"
-            ),
-            [_] => println!(
-"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
-            ),
-            [_, _] => println!(
-"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} or {YELLOW}path{RED} provided!{RESET}"
-            ),
-            [attr, value, path] => print_cut_list(path, attr, value, false, verbose),
-            [attr, value, paths @ ..] => for path in paths {
-                print_cut_list(path, attr, value, true, verbose);
-            },
-        }
+    let mut ps = Vec::new();
+    let mut nps = Vec::new();
+
+    match (mode, &a[..], &b[..]) {
+        ('l', apaths, bpaths) => {
+            for path in apaths {
+                ps.push(path);
+            }
+            for path in bpaths {
+                ps.push(path);
+            }
+        },
+        ('g' | 'r', [att, paths @ ..], []) => {
+            nps.push(att);
+            for path in paths {
+                ps.push(path);
+            }
+        },
+        ('s' | 'a' | 'c', [att, val, paths @ ..], []) => {
+            nps.push(att);
+            nps.push(val);
+            for path in paths {
+                ps.push(path);
+            }
+        },
+        (_, atts, paths) => {
+            for att in atts {
+                nps.push(att);
+            }
+            for path in paths {
+                ps.push(path);
+            }
+        },
+    }
+
+    println!("mode: {mode}, verbose: {verbose}");
+    print!("  ps: ");
+    for p in &ps {
+        print!("{p}, ");
+    }
+    println!();
+    print!("  nps: ");
+    for np in &nps {
+        print!("{np}, ");
+    }
+    println!();
+
+    match (mode, &nps[..], &ps[..]) {
+        ('l', _, []) => println!("{BOLD}{RED}No {YELLOW}path{RED} provided!{RESET}"),
+        ('l', _, [path]) => print_list(path, false, verbose),
+        ('l', _, paths) => for path in paths {
+            print_list(path, true, verbose);
+        },
+        ('g', [], []) => println!(
+"{BOLD}{RED}No {YELLOW}path{RED} nor {YELLOW}attribute{RED} provided!{RESET}"
+        ),
+        ('g', [], [_]) => println!("{BOLD}{RED}No {YELLOW}attribute{RED} provided!{RESET}"),
+        ('g', [_], []) => println!("{BOLD}{RED}No {YELLOW}path{RED} provided!{RESET}"),
+        ('g', [attr], [path]) => print_get(path, attr, false, verbose),
+        ('g', attrs, paths) => for path in paths { for attr in attrs {
+            print_get(path, attr, true, verbose);
+        }},
+        ('s', [], []) => println!(
+"{BOLD}{RED}No {YELLOW}path{RED} nor {YELLOW}attribute{RED} nor {YELLOW}value{RED} provided!{RESET}"
+        ),
+        ('s', [], [_]) => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} nor {YELLOW}value{RED} provided!{RESET}"
+        ),
+        ('s', [_], []) => println!(
+"{BOLD}{RED}No {YELLOW}path{RED} provided and missing {YELLOW}attribute{RED} or {YELLOW}value{RED}!{RESET}"
+        ),
+        ('s', [_, _], []) => println!(
+"{BOLD}{RED}No {YELLOW}path{RED} provided!{RESET}"
+        ),
+        ('s', [_], [_]) => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} provided!{RESET}"
+        ),
+        ('s', [attr, value], [path]) => print_set(path, attr, value, false),
+        ('s', [attrs @ .., value], [path]) => for attr in attrs {
+            print_set(path, attr, value, false);
+        },
+        ('s', [attrs @ .., value], paths) => for path in paths { for attr in attrs {
+            print_set(path, attr, value, true);
+        }},
+        ('r', [], []) => println!(
+"{BOLD}{RED}No {YELLOW}path{RED} nor {YELLOW}attribute{RED} provided!{RESET}"
+        ),
+        ('r', [], [_]) => println!("{BOLD}{RED}No {YELLOW}attribute{RED} provided!{RESET}"),
+        ('r', [_], []) => println!("{BOLD}{RED}No {YELLOW}path{RED} provided!{RESET}"),
+        ('r', [attr], [path]) => print_remove(path, attr, false),
+        ('r', attrs, paths) => for path in paths { for attr in attrs {
+            print_remove(path, attr, true);
+        }},
+        ('a', [], []) => println!(
+"{BOLD}{RED}No {YELLOW}path{RED} nor {YELLOW}attribute{RED} nor {YELLOW}value{RED} provided!{RESET}"
+        ),
+        ('a', [], [_]) => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} nor {YELLOW}value{RED} provided!{RESET}"
+        ),
+        ('a', [_], []) => println!(
+"{BOLD}{RED}No {YELLOW}path{RED} provided and missing {YELLOW}attribute{RED} or {YELLOW}value{RED}!{RESET}"
+        ),
+        ('a', [_, _], []) => println!(
+"{BOLD}{RED}No {YELLOW}path{RED} provided!{RESET}"
+        ),
+        ('a', [_], [_]) => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} provided!{RESET}"
+        ),
+        ('a', [attr, value], [path]) => print_add_list(path, attr, value, false),
+        ('a', [attrs @ .., value], [path]) => for attr in attrs {
+            print_add_list(path, attr, value, false);
+        },
+        ('a', [attrs @ .., value], paths) => for path in paths { for attr in attrs {
+            print_add_list(path, attr, value, true);
+        }},
+        ('c', [], []) => println!(
+"{BOLD}{RED}No {YELLOW}path{RED} nor {YELLOW}attribute{RED} nor {YELLOW}value{RED} provided!{RESET}"
+        ),
+        ('c', [], [_]) => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} nor {YELLOW}value{RED} provided!{RESET}"
+        ),
+        ('c', [_], []) => println!(
+"{BOLD}{RED}No {YELLOW}path{RED} provided and missing {YELLOW}attribute{RED} or {YELLOW}value{RED}!{RESET}"
+        ),
+        ('c', [_, _], []) => println!(
+"{BOLD}{RED}No {YELLOW}path{RED} provided!{RESET}"
+        ),
+        ('c', [_], [_]) => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} provided!{RESET}"
+        ),
+        ('c', [attr, value], [path]) => print_cut_list(path, attr, value, false, verbose),
+        ('c', [attrs @ .., value], [path]) => for attr in attrs {
+            print_cut_list(path, attr, value, false, verbose);
+        },
+        ('c', [attrs @ .., value], paths) => for path in paths { for attr in attrs {
+            print_cut_list(path, attr, value, true, verbose);
+        }},
+        _ => { },
     }
 
     ExitCode::SUCCESS
