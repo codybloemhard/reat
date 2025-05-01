@@ -16,6 +16,7 @@ fn main() -> ExitCode {
     }
 
     let mut verbose = false;
+    let mut force = false;
     let mut into_a = false;
     let mut mode = ' ';
     let mut a = Vec::new();
@@ -24,6 +25,9 @@ fn main() -> ExitCode {
     for arg in env::args().skip(1) {
         if (arg == "verbose" || arg == "v") && !verbose {
             verbose = true;
+        }
+        else if (arg == "force" || arg == "f") && !force {
+            force = true;
         }
         else if arg == "-" {
             into_a = false;
@@ -129,16 +133,16 @@ fn main() -> ExitCode {
         ('s' | 'a' | 'c', [_], [_]) => println!(
 "{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} provided!{RESET}"
         ),
-        ('s', [attr, value], [path]) => print_set(path, attr, value, false),
+        ('s', [attr, value], [path]) => print_set(path, attr, value, false, force),
         ('s', [attrs @ .., value], [path]) => for attr in attrs {
-            print_set(path, attr, value, false);
+            print_set(path, attr, value, false, force);
         },
         ('s', [attrs @ .., value], paths) => for path in paths { for attr in attrs {
-            print_set(path, attr, value, true);
+            print_set(path, attr, value, true, force);
         }},
-        ('r', [attr], [path]) => print_remove(path, attr, false),
+        ('r', [attr], [path]) => print_remove(path, attr, false, force),
         ('r', attrs, paths) => for path in paths { for attr in attrs {
-            print_remove(path, attr, true);
+            print_remove(path, attr, true, force);
         }},
         ('a', [attr, value], [path]) => print_add_list(path, attr, value, false),
         ('a', [attrs @ .., value], [path]) => for attr in attrs {
@@ -240,9 +244,17 @@ fn get_osstr<P: AsRef<Path>>(path: P, key: &OsStr) -> Option<((String, KeyType),
     None
 }
 
-fn print_set<P: AsRef<Path> + Display>(path: P, key: &str, value: &str, print_filename: bool) {
+fn print_set<P: AsRef<Path> + Display>(
+    path: P, key: &str, value: &str, print_filename: bool, force: bool
+) {
     if print_filename {
         print!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET} ");
+    }
+    if key == "tags" && !force {
+        println!(
+    "{BOLD}{RED}Could not {YELLOW}set{RED} {DEFAULT}tags{RED} without {YELLOW}force{RED}!{RESET}"
+        );
+        return;
     }
     match set(path, key, value) {
         Ok(Some(old)) => println!(
@@ -274,7 +286,11 @@ fn print_add_list<P: AsRef<Path> + Display>(path: P, key: &str, value: &str, pri
 
 fn add_list<P: AsRef<Path>>(path: P, key: &str, value: &str) -> Result<Option<String>, ()> {
     if let Some((_, old_value)) = get(&path, key) {
-        set(path, key, &(old_value + "," + value))
+        if old_value.trim() == "" {
+            set(path, key, value)
+        } else {
+            set(path, key, &(old_value + "," + value))
+        }
     } else {
         set(path, key, value)
     }
@@ -293,9 +309,15 @@ fn set_raw<P: AsRef<Path>>(path: P, key: &str, value: &str) -> bool {
     xattr::set(path, "user.".to_string() + key, &Vec::<u8>::from(value)).is_ok()
 }
 
-fn print_remove<P: AsRef<Path> + Display>(path: P, key: &str, print_filename: bool) {
+fn print_remove<P: AsRef<Path> + Display>(path: P, key: &str, print_filename: bool, force: bool) {
     if print_filename {
         print!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET} ");
+    }
+    if key == "tags" && !force {
+        println!(
+    "{BOLD}{RED}Could not {YELLOW}remove{RED} {DEFAULT}tags{RED} without {YELLOW}force{RED}!{RESET}"
+        );
+        return;
     }
     match remove(path, key) {
         Ok(Some(old)) => println!(
