@@ -11,8 +11,8 @@ list
 remove
 add
 cut
+copy
 tags
-multi tag multi file
 dump, restore
 index
 workflows

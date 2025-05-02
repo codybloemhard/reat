@@ -56,6 +56,10 @@ fn main() -> ExitCode {
             mode = 'c';
             into_a = true;
         }
+        else if arg == "copy" && mode == ' ' {
+            mode = 'k';
+            into_a = true;
+        }
         else if into_a {
             a.push(arg);
         }
@@ -72,7 +76,7 @@ fn main() -> ExitCode {
     let mut nps = Vec::new();
 
     match (mode, &a[..], &b[..]) {
-        ('l', apaths, bpaths) => {
+        ('l' | 'k', apaths, bpaths) => {
             for path in apaths {
                 ps.push(path);
             }
@@ -111,6 +115,10 @@ fn main() -> ExitCode {
         ('l', _, paths) => for path in paths {
             print_list(path, true, verbose);
         },
+        ('k', _, []) => no_path(),
+        ('k', _, [_]) => println!("{BOLD}{RED}Need at least 2 {YELLOW}paths{RED}.{RESET}"),
+        ('k', _, [srcp, dstp]) => print_copy(srcp, dstp),
+        ('k', _, _) => println!("{BOLD}{RED}To many {YELLOW}paths{RED}.{RESET}"),
         ('g' | 'r', [], []) => println!(
 "{BOLD}{RED}No {YELLOW}path{RED} nor {YELLOW}attribute{RED} provided!{RESET}"
         ),
@@ -203,6 +211,32 @@ fn print_list<P: AsRef<Path> + Display>(path: P, print_filename: bool, verbose: 
     }
     for (key, value) in security {
         println!("  {MAGENTA}(security) {RESET}{BOLD}{key}{RESET}: {value}");
+    }
+}
+
+fn print_copy<P: AsRef<Path> + Display>(srcp: P, dstp: P) {
+    let xattrs = if let Ok(xs) = xattr::list(&srcp) { xs }
+    else {
+        println!(
+    "{BOLD}{GREEN}{srcp}{RESET}{RED}{BOLD}: could not {YELLOW}copy{RED} from attributes.{RESET}"
+        );
+        return;
+    };
+    let mut ok = true;
+    for key in xattrs {
+        let val = xattr::get(&srcp, &key);
+        if let Ok(Some(val)) = val {
+            if xattr::set(&dstp, &key, &val).is_err() {
+                ok = false;
+                println!(
+        "{BOLD}{RED}Could not {YELLOW}set{RED} attribute {DEFAULT}{:?}{RED} on destination.{RESET}",
+                    key
+                );
+            }
+        }
+    }
+    if ok {
+        println!("{BOLD}{GREEN}Successfully copied from source to destination.{RESET}");
     }
 }
 
