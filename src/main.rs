@@ -4,7 +4,6 @@ use std::{
     process::ExitCode,
     ffi::{ OsStr, OsString },
     fmt::Display,
-    // collections::VecDeque,
 };
 
 use zen_colour::*;
@@ -18,7 +17,7 @@ fn main() -> ExitCode {
     let mut verbose = false;
     let mut force = false;
     let mut into_a = false;
-    let mut mode = "";
+    let mut mode = " ";
     let mut a = Vec::new();
     let mut b = Vec::new();
 
@@ -60,6 +59,10 @@ fn main() -> ExitCode {
             mode = "cp";
             into_a = true;
         }
+        else if arg == "contains" && mode == " " {
+            mode = "cn";
+            into_a = true;
+        }
         else if into_a {
             a.push(arg);
         }
@@ -68,7 +71,7 @@ fn main() -> ExitCode {
         }
     }
 
-    if mode.is_empty() {
+    if mode == " " {
         mode = "l";
     }
 
@@ -90,7 +93,7 @@ fn main() -> ExitCode {
                 ps.push(path);
             }
         },
-        ("s" | "a" | "c", [att, val, paths @ ..], []) => {
+        ("s" | "a" | "c" | "cn", [att, val, paths @ ..], []) => {
             nps.push(att);
             nps.push(val);
             for path in paths {
@@ -128,16 +131,16 @@ fn main() -> ExitCode {
         ("g", attrs, paths) => for path in paths { for attr in attrs {
             print_get(path, attr, true, verbose);
         }},
-        ("s" | "a" | "c", [], []) => println!(
+        ("s" | "a" | "c" | "cn", [], []) => println!(
 "{BOLD}{RED}No {YELLOW}path{RED} nor {YELLOW}attribute{RED} nor {YELLOW}value{RED} provided!{RESET}"
         ),
-        ("s" | "a" | "c", [], [_]) => println!(
+        ("s" | "a" | "c" | "cn", [], [_]) => println!(
 "{BOLD}{RED}No {YELLOW}attribute{RED} nor {YELLOW}value{RED} provided!{RESET}"
         ),
         ("s" | "a" | "c", [_], []) => println!(
 "{BOLD}{RED}No {YELLOW}path{RED} provided and missing {YELLOW}attribute{RED} or {YELLOW}value{RED}!{RESET}"
         ),
-        ("s" | "a" | "c", [_, _], []) => no_path(),
+        ("s" | "a" | "c" | "cn", [_, _], []) => no_path(),
         ("s" | "a" | "c", [_], [_]) => println!(
 "{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} provided!{RESET}"
         ),
@@ -166,6 +169,13 @@ fn main() -> ExitCode {
         ("c", [attrs @ .., value], paths) => for path in paths { for attr in attrs {
             print_cut_list(path, attr, value, true, verbose);
         }},
+        ("cn", [_], []) => no_path(),
+        ("cn", [attr], paths) => for path in paths {
+            print_contains(attr, &[], path);
+        },
+        ("cn", [attr, values @ ..], paths) => for path in paths {
+            print_contains(attr, values, path);
+        },
         _ => { },
     }
 
@@ -428,6 +438,24 @@ fn remove<P: AsRef<Path>>(path: P, key: &str) -> Result<Option<String>, ()> {
 
 fn remove_raw<P: AsRef<Path>>(path: P, key: &str) -> bool {
     xattr::remove(path, "user.".to_string() + key).is_ok()
+}
+
+
+fn print_contains(key: &str, values: &[&String], path: &str) {
+    let blanket = values.is_empty();
+    if let Some((_, avalue)) = get(path, key) {
+        if blanket {
+            println!("{path}");
+        }
+        let list = avalue.split(',').collect::<Vec<_>>();
+        for item in list {
+            for value in values {
+                if item.contains(*value) {
+                    println!("{path}");
+                }
+            }
+        }
+    }
 }
 
 fn split_key(key: &str) -> (&str, KeyType) {

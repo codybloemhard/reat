@@ -12,6 +12,7 @@ remove
 add
 cut
 copy
+contains
 tags
 dump, restore
 index
