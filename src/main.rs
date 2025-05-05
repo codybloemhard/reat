@@ -195,6 +195,10 @@ fn print_list<P: AsRef<Path> + Display>(path: P, print_filename: bool, verbose: 
             None => { },
         }
     }
+    user.sort();
+    system.sort();
+    trusted.sort();
+    security.sort();
     if (print_filename || verbose) && !empty {
         println!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET}");
     } else if verbose && empty {
