@@ -18,7 +18,7 @@ fn main() -> ExitCode {
     let mut verbose = false;
     let mut force = false;
     let mut into_a = false;
-    let mut mode = ' ';
+    let mut mode = "";
     let mut a = Vec::new();
     let mut b = Vec::new();
 
@@ -32,32 +32,32 @@ fn main() -> ExitCode {
         else if arg == "-" {
             into_a = false;
         }
-        else if (arg == "list" || arg == "l") && mode == ' ' {
-            mode = 'l';
+        else if (arg == "list" || arg == "l") && mode == " " {
+            mode = "l";
             into_a = true;
         }
-        else if (arg == "get" || arg == "g") && mode == ' ' {
-            mode = 'g';
+        else if (arg == "get" || arg == "g") && mode == " " {
+            mode = "g";
             into_a = true;
         }
-        else if (arg == "set" || arg == "s") && mode == ' ' {
-            mode = 's';
+        else if (arg == "set" || arg == "s") && mode == " " {
+            mode = "s";
             into_a = true;
         }
-        else if (arg == "rem" || arg == "r") && mode == ' ' {
-            mode = 'r';
+        else if (arg == "rem" || arg == "r") && mode == " " {
+            mode = "r";
             into_a = true;
         }
-        else if (arg == "add" || arg == "a") && mode == ' ' {
-            mode = 'a';
+        else if (arg == "add" || arg == "a") && mode == " " {
+            mode = "a";
             into_a = true;
         }
-        else if (arg == "cut" || arg == "c") && mode == ' ' {
-            mode = 'c';
+        else if (arg == "cut" || arg == "c") && mode == " " {
+            mode = "c";
             into_a = true;
         }
-        else if arg == "copy" && mode == ' ' {
-            mode = 'k';
+        else if arg == "copy" && mode == " " {
+            mode = "cp";
             into_a = true;
         }
         else if into_a {
@@ -68,15 +68,15 @@ fn main() -> ExitCode {
         }
     }
 
-    if mode == ' ' {
-        mode = 'l';
+    if mode.is_empty() {
+        mode = "l";
     }
 
     let mut ps = Vec::new();
     let mut nps = Vec::new();
 
     match (mode, &a[..], &b[..]) {
-        ('l' | 'k', apaths, bpaths) => {
+        ("l" | "cp", apaths, bpaths) => {
             for path in apaths {
                 ps.push(path);
             }
@@ -84,13 +84,13 @@ fn main() -> ExitCode {
                 ps.push(path);
             }
         },
-        ('g' | 'r', [att, paths @ ..], []) => {
+        ("g" | "r", [att, paths @ ..], []) => {
             nps.push(att);
             for path in paths {
                 ps.push(path);
             }
         },
-        ('s' | 'a' | 'c', [att, val, paths @ ..], []) => {
+        ("s" | "a" | "c", [att, val, paths @ ..], []) => {
             nps.push(att);
             nps.push(val);
             for path in paths {
@@ -110,60 +110,60 @@ fn main() -> ExitCode {
     let no_path = || println!("{BOLD}{RED}No {YELLOW}path{RED} provided!{RESET}");
 
     match (mode, &nps[..], &ps[..]) {
-        ('l', _, []) => no_path(),
-        ('l', _, [path]) => print_list(path, false, verbose),
-        ('l', _, paths) => for path in paths {
+        ("l", _, []) => no_path(),
+        ("l", _, [path]) => print_list(path, false, verbose),
+        ("l", _, paths) => for path in paths {
             print_list(path, true, verbose);
         },
-        ('k', _, []) => no_path(),
-        ('k', _, [_]) => println!("{BOLD}{RED}Need at least 2 {YELLOW}paths{RED}.{RESET}"),
-        ('k', _, [srcp, dstp]) => print_copy(srcp, dstp),
-        ('k', _, _) => println!("{BOLD}{RED}To many {YELLOW}paths{RED}.{RESET}"),
-        ('g' | 'r', [], []) => println!(
+        ("cp", _, []) => no_path(),
+        ("cp", _, [_]) => println!("{BOLD}{RED}Need at least 2 {YELLOW}paths{RED}.{RESET}"),
+        ("cp", _, [srcp, dstp]) => print_copy(srcp, dstp),
+        ("cp", _, _) => println!("{BOLD}{RED}To many {YELLOW}paths{RED}.{RESET}"),
+        ("g" | "r", [], []) => println!(
 "{BOLD}{RED}No {YELLOW}path{RED} nor {YELLOW}attribute{RED} provided!{RESET}"
         ),
-        ('g' | 'r', [], [_]) => println!("{BOLD}{RED}No {YELLOW}attribute{RED} provided!{RESET}"),
-        ('g' | 'r', [_], []) => no_path(),
-        ('g', [attr], [path]) => print_get(path, attr, false, verbose),
-        ('g', attrs, paths) => for path in paths { for attr in attrs {
+        ("g" | "r", [], [_]) => println!("{BOLD}{RED}No {YELLOW}attribute{RED} provided!{RESET}"),
+        ("g" | "r", [_], []) => no_path(),
+        ("g", [attr], [path]) => print_get(path, attr, false, verbose),
+        ("g", attrs, paths) => for path in paths { for attr in attrs {
             print_get(path, attr, true, verbose);
         }},
-        ('s' | 'a' | 'c', [], []) => println!(
+        ("s" | "a" | "c", [], []) => println!(
 "{BOLD}{RED}No {YELLOW}path{RED} nor {YELLOW}attribute{RED} nor {YELLOW}value{RED} provided!{RESET}"
         ),
-        ('s' | 'a' | 'c', [], [_]) => println!(
+        ("s" | "a" | "c", [], [_]) => println!(
 "{BOLD}{RED}No {YELLOW}attribute{RED} nor {YELLOW}value{RED} provided!{RESET}"
         ),
-        ('s' | 'a' | 'c', [_], []) => println!(
+        ("s" | "a" | "c", [_], []) => println!(
 "{BOLD}{RED}No {YELLOW}path{RED} provided and missing {YELLOW}attribute{RED} or {YELLOW}value{RED}!{RESET}"
         ),
-        ('s' | 'a' | 'c', [_, _], []) => no_path(),
-        ('s' | 'a' | 'c', [_], [_]) => println!(
+        ("s" | "a" | "c", [_, _], []) => no_path(),
+        ("s" | "a" | "c", [_], [_]) => println!(
 "{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} provided!{RESET}"
         ),
-        ('s', [attr, value], [path]) => print_set(path, attr, value, false, force),
-        ('s', [attrs @ .., value], [path]) => for attr in attrs {
+        ("s", [attr, value], [path]) => print_set(path, attr, value, false, force),
+        ("s", [attrs @ .., value], [path]) => for attr in attrs {
             print_set(path, attr, value, false, force);
         },
-        ('s', [attrs @ .., value], paths) => for path in paths { for attr in attrs {
+        ("s", [attrs @ .., value], paths) => for path in paths { for attr in attrs {
             print_set(path, attr, value, true, force);
         }},
-        ('r', [attr], [path]) => print_remove(path, attr, false, force),
-        ('r', attrs, paths) => for path in paths { for attr in attrs {
+        ("r", [attr], [path]) => print_remove(path, attr, false, force),
+        ("r", attrs, paths) => for path in paths { for attr in attrs {
             print_remove(path, attr, true, force);
         }},
-        ('a', [attr, value], [path]) => print_add_list(path, attr, value, false),
-        ('a', [attrs @ .., value], [path]) => for attr in attrs {
+        ("a", [attr, value], [path]) => print_add_list(path, attr, value, false),
+        ("a", [attrs @ .., value], [path]) => for attr in attrs {
             print_add_list(path, attr, value, false);
         },
-        ('a', [attrs @ .., value], paths) => for path in paths { for attr in attrs {
+        ("a", [attrs @ .., value], paths) => for path in paths { for attr in attrs {
             print_add_list(path, attr, value, true);
         }},
-        ('c', [attr, value], [path]) => print_cut_list(path, attr, value, false, verbose),
-        ('c', [attrs @ .., value], [path]) => for attr in attrs {
+        ("c", [attr, value], [path]) => print_cut_list(path, attr, value, false, verbose),
+        ("c", [attrs @ .., value], [path]) => for attr in attrs {
             print_cut_list(path, attr, value, false, verbose);
         },
-        ('c', [attrs @ .., value], paths) => for path in paths { for attr in attrs {
+        ("c", [attrs @ .., value], paths) => for path in paths { for attr in attrs {
             print_cut_list(path, attr, value, true, verbose);
         }},
         _ => { },
