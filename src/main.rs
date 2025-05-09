@@ -16,6 +16,7 @@ fn main() -> ExitCode {
 
     let mut verbose = false;
     let mut force = false;
+    let mut stdin = false;
     let mut into_a = false;
     let mut mode = " ";
     let mut a = Vec::new();
@@ -27,6 +28,9 @@ fn main() -> ExitCode {
         }
         else if (arg == "force" || arg == "f") && !force {
             force = true;
+        }
+        else if (arg == "stdin" || arg == "i") && !stdin {
+            stdin = true;
         }
         else if arg == "-" {
             into_a = false;
@@ -55,11 +59,11 @@ fn main() -> ExitCode {
             mode = "c";
             into_a = true;
         }
-        else if arg == "copy" && mode == " " {
+        else if (arg == "copy" || arg == "cp") && mode == " " {
             mode = "cp";
             into_a = true;
         }
-        else if arg == "contains" && mode == " " {
+        else if (arg == "contains" || arg == "cn") && mode == " " {
             mode = "cn";
             into_a = true;
         }
@@ -75,8 +79,21 @@ fn main() -> ExitCode {
         mode = "l";
     }
 
+    let mut stdin_refs = Vec::new();
     let mut ps = Vec::new();
     let mut nps = Vec::new();
+
+    if stdin {
+        let stdin = std::io::read_to_string(std::io::stdin());
+        if let Ok(input) = stdin {
+            for file in input.split('\n') {
+                stdin_refs.push(file.trim().to_string());
+            }
+        }
+        for fref in &stdin_refs[..] {
+            ps.push(fref);
+        }
+    }
 
     match (mode, &a[..], &b[..]) {
         ("l" | "cp", apaths, bpaths) => {

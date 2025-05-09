@@ -2,18 +2,22 @@
 
 Tool for ergonomic use of extended attributes of filesystem objects.
 
-Rust Extended ATtribute
-ergonomics
-colours
-set
-get
-list
-remove
-add
-cut
-copy
-contains
-tags
+Reat stands for Rust Extended ATtribute.
+
+- ergonomics
+- colours
+- set
+- get
+- list
+- remove
+- add
+- cut
+- copy
+- contains
+- tags
+- read paths via stdin
+
+contains and/all, not
 dump, restore
 index
 workflows
