@@ -13,15 +13,13 @@ Reat stands for Rust Extended ATtribute.
 - add
 - cut
 - copy
-- contains
+- contains: or, and/all, not
 - tags
 - read paths via stdin
 
-contains and/all, not
 dump, restore
 index
 workflows
-select
 sort
 
 reat get att file

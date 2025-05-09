@@ -67,6 +67,14 @@ fn main() -> ExitCode {
             mode = "cn";
             into_a = true;
         }
+        else if (arg == "contains-all" || arg == "cna") && mode == " " {
+            mode = "cna";
+            into_a = true;
+        }
+        else if (arg == "contains-not" || arg == "cnn") && mode == " " {
+            mode = "cnn";
+            into_a = true;
+        }
         else if into_a {
             a.push(arg);
         }
@@ -110,7 +118,7 @@ fn main() -> ExitCode {
                 ps.push(path);
             }
         },
-        ("s" | "a" | "c" | "cn", [att, val, paths @ ..], []) => {
+        ("s" | "a" | "c" | "cn" | "cna" | "cnn", [att, val, paths @ ..], []) => {
             nps.push(att);
             nps.push(val);
             for path in paths {
@@ -188,10 +196,22 @@ fn main() -> ExitCode {
         }},
         ("cn", [_], []) => no_path(),
         ("cn", [attr], paths) => for path in paths {
-            print_contains(attr, &[], path);
+            print_contains('o', attr, &[], path);
         },
         ("cn", [attr, values @ ..], paths) => for path in paths {
-            print_contains(attr, values, path);
+            print_contains('o', attr, values, path);
+        },
+        ("cna", [attr], paths) => for path in paths {
+            print_contains('a', attr, &[], path);
+        },
+        ("cna", [attr, values @ ..], paths) => for path in paths {
+            print_contains('a', attr, values, path);
+        },
+        ("cnn", [attr], paths) => for path in paths {
+            print_contains('n', attr, &[], path);
+        },
+        ("cnn", [attr, values @ ..], paths) => for path in paths {
+            print_contains('n', attr, values, path);
         },
         _ => { },
     }
@@ -458,18 +478,52 @@ fn remove_raw<P: AsRef<Path>>(path: P, key: &str) -> bool {
 }
 
 
-fn print_contains(key: &str, values: &[&String], path: &str) {
+fn print_contains(mode: char, key: &str, values: &[&String], path: &str) {
     let blanket = values.is_empty();
     if let Some((_, avalue)) = get(path, key) {
         if blanket {
             println!("{path}");
         }
         let list = avalue.split(',').collect::<Vec<_>>();
-        for item in list {
-            for value in values {
-                if item.contains(*value) {
-                    println!("{path}");
+        if mode == 'o' {
+            'outer: for item in list {
+                for value in values {
+                    if item.contains(*value) {
+                        println!("{path}");
+                        break 'outer;
+                    }
                 }
+            }
+        } else if mode == 'a' {
+            let mut ok = true;
+            for value in values {
+                let mut lok = false;
+                for item in &list {
+                    if item.contains(*value) {
+                        lok = true;
+                        break;
+                    }
+                }
+                if !lok {
+                    ok = false;
+                    break;
+                }
+            }
+            if ok {
+                println!("{path}");
+            }
+        } else if mode == 'n' {
+            let mut ok = true;
+            'outer: for value in values {
+                for item in &list {
+                    if item.contains(*value) {
+                        ok = false;
+                        break 'outer;
+                    }
+                }
+            }
+            if ok {
+                println!("{path}");
             }
         }
     }
