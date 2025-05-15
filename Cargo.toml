@@ -2,6 +2,12 @@
 name = "reat"
 version = "0.1.0"
 edition = "2024"
+authors = ["Cody Bloemhard <codybloemhard@gmail.com>"]
+readme = "README.md"
+license = "GPL-3.0-only"
+repository = "https://github.com/codybloemhard/reat"
+description = "Tool for ergonomic use of extended attributes of filesystem objects."
+categories = ["command-line-utilities", "filesystem"]
 
 [dependencies]
 xattr = "1.5.0"
