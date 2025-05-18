@@ -99,7 +99,9 @@ fn main() -> ExitCode {
             }
         }
         for fref in &stdin_refs[..] {
-            ps.push(fref);
+            if !fref.is_empty() {
+                ps.push(fref);
+            }
         }
     }
 
