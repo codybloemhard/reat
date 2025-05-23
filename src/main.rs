@@ -337,19 +337,16 @@ fn print_set<P: AsRef<Path> + Display>(
     if print_filename {
         print!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET} ");
     }
-    if key == "tags" && !force {
-        println!(
-    "{BOLD}{RED}Could not {YELLOW}set{RED} {DEFAULT}tags{RED} without {YELLOW}force{RED}!{RESET}"
-        );
-        return;
-    }
-    match set(path, key, value) {
+    match set(path, key, value, key == "tags" && !force) {
         Ok(Some(old)) => println!(
             "{GREEN}Attribute {DEFAULT}{key}{GREEN} {YELLOW}overwritten{GREEN} successfully.
   Old value was \"{RESET}{old}{GREEN}\".{RESET}"
         ),
         Ok(None) => println!(
             "{GREEN}Attribute {DEFAULT}{key}{GREEN} {YELLOW}set{GREEN} successfully.{RESET}"
+        ),
+        Err(true) => println!(
+    "{BOLD}{RED}Could not {YELLOW}set{RED} {DEFAULT}tags{RED} without {YELLOW}force{RED}!{RESET}"
         ),
         Err(_) => println!(
             "{BOLD}{RED}Could not {YELLOW}set{RED} attribute {DEFAULT}{key}{RED}.{RESET}"
@@ -371,24 +368,30 @@ fn print_add_list<P: AsRef<Path> + Display>(path: P, key: &str, value: &str, pri
     }
 }
 
-fn add_list<P: AsRef<Path>>(path: P, key: &str, value: &str) -> Result<Option<String>, ()> {
+fn add_list<P: AsRef<Path>>(path: P, key: &str, value: &str) -> Result<Option<String>, bool> {
     if let Some((_, old_value)) = get(&path, key) {
         if old_value.trim() == "" {
-            set(path, key, value)
+            set(path, key, value, false)
         } else {
-            set(path, key, &(old_value + "," + value))
+            set(path, key, &(old_value + "," + value), false)
         }
     } else {
-        set(path, key, value)
+        set(path, key, value, false)
     }
 }
 
-fn set<P: AsRef<Path>>(path: P, key: &str, value: &str) -> Result<Option<String>, ()> {
+// returns Err(true) if failed due to empty requirement.
+// returns Err(false) if failed because of other reasons.
+fn set<P: AsRef<Path>>(path: P, key: &str, value: &str, require_empty: bool)
+ -> Result<Option<String>, bool>
+{
     let old_val = if let Some((_, value)) = get(&path, key) { Some(value) } else { None };
-    if set_raw(path, key, value) {
+    if require_empty && old_val.is_some() {
+        Err(true)
+    } else if set_raw(path, key, value) {
         Ok(old_val)
     } else {
-        Err(())
+        Err(false)
     }
 }
 
