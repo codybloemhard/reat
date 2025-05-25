@@ -5,8 +5,8 @@ Tool for ergonomic use of extended attributes of filesystem objects.
 Reat stands for Rust Extended ATtribute.
 
 - ergonomic cli
-  - shorts hands
-  - just words no flags
+  - short hands
+  - just words, no flags
   - multiple orders of arguments
 - colours
 - set attribute
@@ -22,6 +22,8 @@ Reat stands for Rust Extended ATtribute.
 
 todo:
 
+- rename
+- replace
 - dump/restore attribute data from files in directory to/from file
 - index
 - workflows

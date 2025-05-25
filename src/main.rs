@@ -158,16 +158,16 @@ fn main() -> ExitCode {
         ("g", attrs, paths) => for path in paths { for attr in attrs {
             print_get(path, attr, true, verbose);
         }},
-        ("s" | "a" | "c" | "cn", [], []) => println!(
+        ("s" | "a" | "c" | "cn" | "cna" | "cnn", [], []) => println!(
 "{BOLD}{RED}No {YELLOW}path{RED} nor {YELLOW}attribute{RED} nor {YELLOW}value{RED} provided!{RESET}"
         ),
-        ("s" | "a" | "c" | "cn", [], [_]) => println!(
+        ("s" | "a" | "c" | "cn" | "cna" | "cnn", [], [_]) => println!(
 "{BOLD}{RED}No {YELLOW}attribute{RED} nor {YELLOW}value{RED} provided!{RESET}"
         ),
         ("s" | "a" | "c", [_], []) => println!(
 "{BOLD}{RED}No {YELLOW}path{RED} provided and missing {YELLOW}attribute{RED} or {YELLOW}value{RED}!{RESET}"
         ),
-        ("s" | "a" | "c" | "cn", [_, _], []) => no_path(),
+        ("s" | "a" | "c" | "cn" | "cna" | "cnn", [_, _], []) => no_path(),
         ("s" | "a" | "c", [_], [_]) => println!(
 "{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} provided!{RESET}"
         ),
@@ -486,11 +486,10 @@ fn remove_raw<P: AsRef<Path>>(path: P, key: &str) -> bool {
 fn print_contains(mode: char, key: &str, values: &[&String], path: &str) {
     let blanket = values.is_empty();
     if let Some((_, avalue)) = get(path, key) {
-        if blanket {
-            println!("{path}");
-        }
         let list = avalue.split(',').collect::<Vec<_>>();
-        if mode == 'o' {
+        if blanket && (mode == 'o' || mode == 'a') {
+            println!("{path}");
+        } else if mode == 'o' {
             'outer: for item in list {
                 for value in values {
                     if item.contains(*value) {
@@ -517,7 +516,7 @@ fn print_contains(mode: char, key: &str, values: &[&String], path: &str) {
             if ok {
                 println!("{path}");
             }
-        } else if mode == 'n' {
+        } else if mode == 'n' && !blanket {
             let mut ok = true;
             'outer: for value in values {
                 for item in &list {
@@ -531,6 +530,8 @@ fn print_contains(mode: char, key: &str, values: &[&String], path: &str) {
                 println!("{path}");
             }
         }
+    } else if blanket && mode == 'n' {
+        println!("{path}");
     }
 }
 
