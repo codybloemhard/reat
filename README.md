@@ -15,6 +15,7 @@ Reat stands for Rust Extended ATtribute.
 - remove attribute
 - add to list attribute
 - cut from list attribute
+- rename attributes
 - copy attributes from source file to destination file
 - contains strings in attribute: or, and/all, not
 - tags: slight special treatment
@@ -22,7 +23,6 @@ Reat stands for Rust Extended ATtribute.
 
 todo:
 
-- rename
 - replace
 - dump/restore attribute data from files in directory to/from file
 - index

@@ -75,6 +75,10 @@ fn main() -> ExitCode {
             mode = "cnn";
             into_a = true;
         }
+        else if (arg == "rename" || arg == "rn") && mode == " " {
+            mode = "rn";
+            into_a = true;
+        }
         else if into_a {
             a.push(arg);
         }
@@ -120,7 +124,7 @@ fn main() -> ExitCode {
                 ps.push(path);
             }
         },
-        ("s" | "a" | "c" | "cn" | "cna" | "cnn", [att, val, paths @ ..], []) => {
+        ("s" | "a" | "c" | "cn" | "cna" | "cnn" | "rn", [att, val, paths @ ..], []) => {
             nps.push(att);
             nps.push(val);
             for path in paths {
@@ -158,16 +162,16 @@ fn main() -> ExitCode {
         ("g", attrs, paths) => for path in paths { for attr in attrs {
             print_get(path, attr, true, verbose);
         }},
-        ("s" | "a" | "c" | "cn" | "cna" | "cnn", [], []) => println!(
+        ("s" | "a" | "c" | "cn" | "cna" | "cnn" | "rn", [], []) => println!(
 "{BOLD}{RED}No {YELLOW}path{RED} nor {YELLOW}attribute{RED} nor {YELLOW}value{RED} provided!{RESET}"
         ),
-        ("s" | "a" | "c" | "cn" | "cna" | "cnn", [], [_]) => println!(
+        ("s" | "a" | "c" | "cn" | "cna" | "cnn" | "rn", [], [_]) => println!(
 "{BOLD}{RED}No {YELLOW}attribute{RED} nor {YELLOW}value{RED} provided!{RESET}"
         ),
         ("s" | "a" | "c", [_], []) => println!(
 "{BOLD}{RED}No {YELLOW}path{RED} provided and missing {YELLOW}attribute{RED} or {YELLOW}value{RED}!{RESET}"
         ),
-        ("s" | "a" | "c" | "cn" | "cna" | "cnn", [_, _], []) => no_path(),
+        ("s" | "a" | "c" | "cn" | "cna" | "cnn" | "rn", [_, _], []) => no_path(),
         ("s" | "a" | "c", [_], [_]) => println!(
 "{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} provided!{RESET}"
         ),
@@ -215,6 +219,9 @@ fn main() -> ExitCode {
         ("cnn", [attr, values @ ..], paths) => for path in paths {
             print_contains('n', attr, values, path);
         },
+        ("rn", [attrs @ .., value], paths) => for path in paths { for attr in attrs {
+            print_rename(path, attr, value, paths.len() > 1, force);
+        }}
         _ => { },
     }
 
@@ -532,6 +539,47 @@ fn print_contains(mode: char, key: &str, values: &[&String], path: &str) {
         }
     } else if blanket && mode == 'n' {
         println!("{path}");
+    }
+}
+
+fn print_rename<P: AsRef<Path> + Display>(
+    path: P, old_att_name: &str, new_att_name: &str, print_filename: bool, force: bool
+) {
+    if print_filename {
+        print!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET} ");
+    }
+    if let Some((_, value)) = get(&path, old_att_name) {
+        match set(&path, new_att_name, &value, !force) {
+            Ok(Some(old_val)) => println!(
+                "{GREEN}Old value was \"{RESET}{old_val}{GREEN}\".{RESET}"
+            ),
+            Ok(None) => { },
+            Err(true) => {
+                println!(
+"{BOLD}{RED}Could not {YELLOW}set{RED} {DEFAULT}{new_att_name}{RED} without {YELLOW}force{RED}!{RESET}"
+                );
+                return;
+            },
+            Err(_) => {
+                println!(
+            "{BOLD}{RED}Could not {YELLOW}set{RED} attribute {DEFAULT}{new_att_name}{RED}.{RESET}"
+                );
+                return;
+            },
+        }
+        if remove(&path, old_att_name).is_err() {
+            println!(
+        "{BOLD}{RED}Could not {YELLOW}remove{RED} attribute {DEFAULT}{old_att_name}{RED}.{RESET}"
+            );
+        } else {
+            println!(
+"{GREEN}Successfully {YELLOW}renamed{GREEN} attribute {DEFAULT}{old_att_name}{GREEN} to {DEFAULT}{new_att_name}{GREEN}.{RESET}"
+            );
+        }
+    } else {
+        println!(
+            "{BOLD}{RED}Could not {YELLOW}get{RED} attribute {DEFAULT}{old_att_name}{RED}.{RESET}"
+        );
     }
 }
 
