@@ -144,7 +144,6 @@ fn main() -> ExitCode {
             }
         },
     }
-    println!("{:?}\n{:?}", nps, ps);
 
     let no_path = || println!("{BOLD}{RED}No {YELLOW}path{RED} provided!{RESET}");
 
@@ -163,9 +162,8 @@ fn main() -> ExitCode {
         ),
         ("g" | "r", [], [_]) => println!("{BOLD}{RED}No {YELLOW}attribute{RED} provided!{RESET}"),
         ("g" | "r", [_], []) => no_path(),
-        ("g", [attr], [path]) => print_get(path, attr, false, verbose),
         ("g", attrs, paths) => for path in paths { for attr in attrs {
-            print_get(path, attr, true, verbose);
+            print_get(path, attr, paths.len() > 1, verbose);
         }},
         ("s" | "a" | "c" | "cn" | "cna" | "cnn" | "rn", [], []) => println!(
 "{BOLD}{RED}No {YELLOW}path{RED} nor {YELLOW}attribute{RED} nor {YELLOW}value{RED} provided!{RESET}"
@@ -192,30 +190,17 @@ fn main() -> ExitCode {
         ("s" | "a" | "c", [_], [_]) => println!(
 "{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} provided!{RESET}"
         ),
-        ("s", [attr, value], [path]) => print_set(path, attr, value, false, force),
-        ("s", [attrs @ .., value], [path]) => for attr in attrs {
-            print_set(path, attr, value, false, force);
-        },
         ("s", [attrs @ .., value], paths) => for path in paths { for attr in attrs {
-            print_set(path, attr, value, true, force);
+            print_set(path, attr, value, paths.len() > 1, force);
         }},
-        ("r", [attr], [path]) => print_remove(path, attr, false, force),
         ("r", attrs, paths) => for path in paths { for attr in attrs {
-            print_remove(path, attr, true, force);
+            print_remove(path, attr, paths.len() > 1, force);
         }},
-        ("a", [attr, value], [path]) => print_add_list(path, attr, value, false),
-        ("a", [attrs @ .., value], [path]) => for attr in attrs {
-            print_add_list(path, attr, value, false);
-        },
         ("a", [attrs @ .., value], paths) => for path in paths { for attr in attrs {
-            print_add_list(path, attr, value, true);
+            print_add_list(path, attr, value, paths.len() > 1);
         }},
-        ("c", [attr, value], [path]) => print_cut_list(path, attr, value, false, verbose),
-        ("c", [attrs @ .., value], [path]) => for attr in attrs {
-            print_cut_list(path, attr, value, false, verbose);
-        },
         ("c", [attrs @ .., value], paths) => for path in paths { for attr in attrs {
-            print_cut_list(path, attr, value, true, verbose);
+            print_cut_list(path, attr, value, paths.len() > 1, verbose);
         }},
         ("cn", [_], []) => no_path(),
         ("cn", [attr], paths) => for path in paths {

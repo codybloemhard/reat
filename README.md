@@ -28,6 +28,7 @@ todo:
 - index
 - workflows
 - sort
+- help
 
 cli interface argument orders:
 
