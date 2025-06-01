@@ -79,6 +79,10 @@ fn main() -> ExitCode {
             mode = "rn";
             into_a = true;
         }
+        else if (arg == "replace" || arg == "rp") && mode == " " {
+            mode = "rp";
+            into_a = true;
+        }
         else if into_a {
             a.push(arg);
         }
@@ -124,7 +128,7 @@ fn main() -> ExitCode {
                 ps.push(path);
             }
         },
-        ("s" | "a" | "c" | "cn" | "cna" | "cnn" | "rn", [att, val, paths @ ..], []) => {
+        ("s" | "a" | "c" | "cn" | "cna" | "cnn" | "rn" | "rp", [att, val, paths @ ..], []) => {
             nps.push(att);
             nps.push(val);
             for path in paths {
@@ -140,6 +144,7 @@ fn main() -> ExitCode {
             }
         },
     }
+    println!("{:?}\n{:?}", nps, ps);
 
     let no_path = || println!("{BOLD}{RED}No {YELLOW}path{RED} provided!{RESET}");
 
@@ -165,13 +170,25 @@ fn main() -> ExitCode {
         ("s" | "a" | "c" | "cn" | "cna" | "cnn" | "rn", [], []) => println!(
 "{BOLD}{RED}No {YELLOW}path{RED} nor {YELLOW}attribute{RED} nor {YELLOW}value{RED} provided!{RESET}"
         ),
+        ("rp", [], []) => println!(
+"{BOLD}{RED}No {YELLOW}path{RED} nor {YELLOW}attribute{RED} nor {YELLOW}values{RED} provided!{RESET}"
+        ),
         ("s" | "a" | "c" | "cn" | "cna" | "cnn" | "rn", [], [_]) => println!(
 "{BOLD}{RED}No {YELLOW}attribute{RED} nor {YELLOW}value{RED} provided!{RESET}"
+        ),
+        ("rp", [], [_]) => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} nor {YELLOW}values{RED} provided!{RESET}"
+        ),
+        ("rp", [_], [_]) => println!(
+"{BOLD}{RED}Missing an {YELLOW}attribute{RED} and a {YELLOW}value{RED} or two {YELLOW}values{RED}!{RESET}"
+        ),
+        ("rp", [_, _], [_]) => println!(
+"{BOLD}{RED}Missing an {YELLOW}attribute{RED} or a {YELLOW}value{RED}!{RESET}"
         ),
         ("s" | "a" | "c", [_], []) => println!(
 "{BOLD}{RED}No {YELLOW}path{RED} provided and missing {YELLOW}attribute{RED} or {YELLOW}value{RED}!{RESET}"
         ),
-        ("s" | "a" | "c" | "cn" | "cna" | "cnn" | "rn", [_, _], []) => no_path(),
+        ("s" | "a" | "c" | "cn" | "cna" | "cnn" | "rn" | "rp", [_, _], []) => no_path(),
         ("s" | "a" | "c", [_], [_]) => println!(
 "{BOLD}{RED}No {YELLOW}attribute{RED} or {YELLOW}value{RED} provided!{RESET}"
         ),
@@ -221,7 +238,10 @@ fn main() -> ExitCode {
         },
         ("rn", [attrs @ .., value], paths) => for path in paths { for attr in attrs {
             print_rename(path, attr, value, paths.len() > 1, force);
-        }}
+        }},
+        ("rp", [attrs @ .., old_val, new_val], paths) => for path in paths { for attr in attrs {
+            print_replace(path, attr, old_val, new_val, paths.len() > 1, verbose);
+        }},
         _ => { },
     }
 
@@ -489,7 +509,6 @@ fn remove_raw<P: AsRef<Path>>(path: P, key: &str) -> bool {
     xattr::remove(path, "user.".to_string() + key).is_ok()
 }
 
-
 fn print_contains(mode: char, key: &str, values: &[&String], path: &str) {
     let blanket = values.is_empty();
     if let Some((_, avalue)) = get(path, key) {
@@ -582,6 +601,54 @@ fn print_rename<P: AsRef<Path> + Display>(
         );
     }
 }
+
+fn print_replace<P: AsRef<Path> + Display>(
+    path: P, key: &str, old_val_name: &str, new_val_name: &str, print_filename: bool, verbose: bool
+) {
+    let res = replace_list(&path, key, old_val_name, new_val_name);
+    if print_filename && (res.is_some() || verbose) {
+        print!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET} ");
+    }
+    match res {
+        Some(true) => println!(
+            "{GREEN}Successfully {YELLOW}replaced{GREEN} {DEFAULT}{old_val_name}{GREEN} with {DEFAULT}{new_val_name}{GREEN} from {DEFAULT}{key}{GREEN}.{RESET}"
+        ),
+        Some(false) => println!(
+            "{BOLD}{RED}Could not {YELLOW}replace{RED} {DEFAULT}{old_val_name}{RED} from {DEFAULT}{key}{RED}.{RESET}"
+        ),
+        None if verbose || !print_filename => println!(
+            "{GREEN}No {YELLOW}replacement{GREEN} required.{RESET}"
+        ),
+        None => { },
+    }
+}
+
+
+fn replace_list<P: AsRef<Path>>(
+    path: P, key: &str, old_value: &str, new_value: &str
+) -> Option<bool> {
+    if let Some((_, old_list)) = get(&path, key) {
+        let mut list = old_list.split(',').collect::<Vec<_>>();
+        if !list.contains(&old_value) {
+            return None;
+        }
+        list.iter_mut().for_each(|item| if *item == old_value { *item = new_value; });
+        let mut res = String::new();
+        for item in list {
+            res.push_str(item);
+            res.push(',');
+        }
+        res.pop();
+        if set_raw(path, key, &res) {
+            Some(true)
+        } else {
+            Some(false)
+        }
+    } else {
+        None
+    }
+}
+
 
 fn split_key(key: &str) -> (&str, KeyType) {
     if key.starts_with("user") { (&key[5..], KeyType::User) }
