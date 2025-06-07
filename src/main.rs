@@ -83,6 +83,10 @@ fn main() -> ExitCode {
             mode = "rp";
             into_a = true;
         }
+        else if (arg == "dump" || arg == "d") && mode == " " {
+            mode = "d";
+            into_a = true;
+        }
         else if into_a {
             a.push(arg);
         }
@@ -114,7 +118,7 @@ fn main() -> ExitCode {
     }
 
     match (mode, &a[..], &b[..]) {
-        ("l" | "cp", apaths, bpaths) => {
+        ("l" | "cp" | "d", apaths, bpaths) => {
             for path in apaths {
                 ps.push(path);
             }
@@ -148,12 +152,13 @@ fn main() -> ExitCode {
     let no_path = || println!("{BOLD}{RED}No {YELLOW}path{RED} provided!{RESET}");
 
     match (mode, &nps[..], &ps[..]) {
-        ("l", _, []) => no_path(),
-        ("l", _, [path]) => print_list(path, false, verbose),
+        ("l" | "d" | "cp", _, []) => no_path(),
         ("l", _, paths) => for path in paths {
-            print_list(path, true, verbose);
+            print_list(path, paths.len() > 1, verbose);
         },
-        ("cp", _, []) => no_path(),
+        ("d", _, paths) => for path in paths {
+            print_dump(path);
+        },
         ("cp", _, [_]) => println!("{BOLD}{RED}Need at least 2 {YELLOW}paths{RED}.{RESET}"),
         ("cp", _, [srcp, dstp]) => print_copy(srcp, dstp),
         ("cp", _, _) => println!("{BOLD}{RED}To many {YELLOW}paths{RED}.{RESET}"),
@@ -276,6 +281,39 @@ fn print_list<P: AsRef<Path> + Display>(path: P, print_filename: bool, verbose: 
     }
     for (key, value) in security {
         println!("  {MAGENTA}(security) {RESET}{BOLD}{key}{RESET}: {value}");
+    }
+}
+
+
+fn print_dump<P: AsRef<Path> + Display>(path: P) {
+    let xattrs = if let Ok(xs) = xattr::list(&path) { xs }
+    else {
+        println!("{path}\nfail");
+        return;
+    };
+    if xattrs.clone().next().is_none() {
+        return;
+    }
+    println!("{path}");
+    let mut list = Vec::new();
+    let mut dropped = 0;
+    for attr in xattrs {
+        match get_osstr(&path, &attr) {
+            Some(((key, KeyType::User), value)) => list.push((key, value)),
+            Some(((_, KeyType::System), _)) => dropped += 1,
+            Some(((_, KeyType::Trusted), _)) => dropped += 1,
+            Some(((_, KeyType::Security), _)) => dropped += 1,
+            None => { },
+        }
+    }
+    for (key, val) in &list {
+        print!("{} ", key.chars().filter(|c| *c == '\n').count() + 1);
+        print!("{} ", val.chars().filter(|c| *c == '\n').count() + 1);
+    }
+    println!("{dropped}");
+    for (key, val) in list {
+        println!("{key}");
+        println!("{val}");
     }
 }
 
