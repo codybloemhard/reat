@@ -20,12 +20,12 @@ Reat stands for Rust Extended ATtribute.
 - copy attributes from source file to destination file
 - contains strings in attribute: or, and/all, not
 - dump attribute data
+- restore attribute data from dump
 - tags: slight special treatment
 - read paths via stdin: chain reat with itself and others
 
 todo:
 
-- restore attribute data from file
 - index
 - workflows
 - sort

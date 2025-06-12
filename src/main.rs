@@ -4,6 +4,7 @@ use std::{
     process::ExitCode,
     ffi::{ OsStr, OsString },
     fmt::Display,
+    collections::HashSet,
 };
 
 use zen_colour::*;
@@ -87,6 +88,10 @@ fn main() -> ExitCode {
             mode = "d";
             into_a = true;
         }
+        else if (arg == "restore" || arg == "rs") && mode == " " {
+            mode = "rs";
+            into_a = true;
+        }
         else if into_a {
             a.push(arg);
         }
@@ -102,6 +107,7 @@ fn main() -> ExitCode {
     let mut stdin_refs = Vec::new();
     let mut ps = Vec::new();
     let mut nps = Vec::new();
+    let mut dump = String::new();
 
     if stdin {
         let stdin = std::io::read_to_string(std::io::stdin());
@@ -115,10 +121,18 @@ fn main() -> ExitCode {
                 ps.push(fref);
             }
         }
+    } else if mode == "rs" {
+        let stdin = std::io::read_to_string(std::io::stdin());
+        if let Ok(input) = stdin {
+            dump = input;
+        } else {
+            println!("{BOLD}{RED} restore data could not be read into stdin!");
+            return ExitCode::FAILURE;
+        }
     }
 
     match (mode, &a[..], &b[..]) {
-        ("l" | "cp" | "d", apaths, bpaths) => {
+        ("l" | "cp" | "d" | "rs", apaths, bpaths) => {
             for path in apaths {
                 ps.push(path);
             }
@@ -152,12 +166,15 @@ fn main() -> ExitCode {
     let no_path = || println!("{BOLD}{RED}No {YELLOW}path{RED} provided!{RESET}");
 
     match (mode, &nps[..], &ps[..]) {
-        ("l" | "d" | "cp", _, []) => no_path(),
+        ("l" | "d" | "cp" | "rs", _, []) => no_path(),
         ("l", _, paths) => for path in paths {
             print_list(path, paths.len() > 1, verbose);
         },
         ("d", _, paths) => for path in paths {
             print_dump(path);
+        },
+        ("rs", _, paths) => {
+            print_restore(dump, paths, verbose, force);
         },
         ("cp", _, [_]) => println!("{BOLD}{RED}Need at least 2 {YELLOW}paths{RED}.{RESET}"),
         ("cp", _, [srcp, dstp]) => print_copy(srcp, dstp),
@@ -672,6 +689,96 @@ fn replace_list<P: AsRef<Path>>(
     }
 }
 
+fn print_restore(dump: String, paths: &[&String], verbose: bool, force: bool) {
+    let check = !paths.is_empty();
+    let mut paths_set = HashSet::new();
+    if check {
+        for path in paths {
+            paths_set.insert(path.as_str());
+        }
+    }
+    let lines = dump.split('\n');
+    let mut mode = "f";
+    let mut file = "";
+    let mut nums = Vec::<usize>::new();
+    let mut nums_i = 0;
+    let mut key = String::new();
+    let mut val = String::new();
+    let mut kvs = Vec::new();
+    for line in lines {
+        if mode == "f" {
+            file = line;
+            mode = "n";
+        } else if mode == "n" {
+            nums.clear();
+            kvs.clear();
+            let nums_raw = line.split(' ');
+            for num in nums_raw {
+                let res = num.parse();
+                if let Ok(res) = res {
+                    nums.push(res);
+                }
+            }
+            nums.pop();
+            mode = "k";
+            nums_i = 0;
+        } else if mode == "k" {
+            if !key.is_empty() {
+                key.push('\n');
+            }
+            key.push_str(line);
+            nums[nums_i] -= 1;
+            if nums[nums_i] == 0 {
+                mode = "v";
+                nums_i += 1;
+            }
+        } else if mode == "v" {
+            if !val.is_empty() {
+                val.push('\n');
+            }
+            val.push_str(line);
+            nums[nums_i] -= 1;
+            if nums[nums_i] == 0 {
+                mode = "k";
+                nums_i += 1;
+                kvs.push((std::mem::take(&mut key), std::mem::take(&mut val)));
+                if nums_i >= nums.len() {
+                    mode = "f";
+                    if !check || paths_set.contains(file) {
+                        let mut printed = false;
+                        if verbose {
+                            println!("{BOLD}{GREEN}{file}{RESET}{GREEN}:{RESET}");
+                            printed = true;
+                        }
+                        for (k, v) in &kvs {
+                            let res = set(file, k, v, !force);
+                            if res.is_err() && !printed {
+                                println!("{BOLD}{GREEN}{file}{RESET}{GREEN}:{RESET}");
+                                printed = true;
+                            }
+                            match res {
+                                Ok(None) if verbose => println!(
+    "  {GREEN}Attribute {DEFAULT}{k}{GREEN} {YELLOW}set{GREEN} successfully.{RESET}"
+                                ),
+                                Ok(Some(old)) if verbose => println!(
+    "  {GREEN}Attribute {DEFAULT}{k}{GREEN} {YELLOW}overwritten{GREEN} successfully.
+  Old value was \"{RESET}{old}{GREEN}\".{RESET}"
+                                ),
+                                Ok(_) => { },
+                                Err(true) => println!(
+    "  {BOLD}{RED}Could not {YELLOW}set{RED} {DEFAULT}{k}{RED} without {YELLOW}force{RED}!{RESET}"
+                                ),
+                                Err(false) => println!(
+    "  {BOLD}{RED}Could not {YELLOW}set{RED} attribute {DEFAULT}{k}{RED}.{RESET}"
+                                ),
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 fn split_key(key: &str) -> (&str, KeyType) {
     if key.starts_with("user") { (&key[5..], KeyType::User) }
