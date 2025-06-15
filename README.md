@@ -8,7 +8,7 @@ Reat stands for Rust Extended ATtribute.
   - short hands
   - just words, no flags
   - multiple orders of arguments
-- colours
+- coloured output
 - list attributes
 - get attribute
 - set attribute

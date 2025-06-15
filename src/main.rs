@@ -60,6 +60,10 @@ fn main() -> ExitCode {
             mode = "c";
             into_a = true;
         }
+        else if (arg == "clear" || arg == "cl") && mode == " " {
+            mode = "cl";
+            into_a = true;
+        }
         else if (arg == "copy" || arg == "cp") && mode == " " {
             mode = "cp";
             into_a = true;
@@ -132,7 +136,7 @@ fn main() -> ExitCode {
     }
 
     match (mode, &a[..], &b[..]) {
-        ("l" | "cp" | "d" | "rs", apaths, bpaths) => {
+        ("l" | "cp" | "d" | "rs" | "cl", apaths, bpaths) => {
             for path in apaths {
                 ps.push(path);
             }
@@ -175,6 +179,9 @@ fn main() -> ExitCode {
         },
         ("rs", _, paths) => {
             print_restore(dump, paths, verbose, force);
+        },
+        ("cl", _, paths) => for path in paths {
+            print_clear(path, paths.len() > 1, verbose, force);
         },
         ("cp", _, [_]) => println!("{BOLD}{RED}Need at least 2 {YELLOW}paths{RED}.{RESET}"),
         ("cp", _, [srcp, dstp]) => print_copy(srcp, dstp),
@@ -489,6 +496,73 @@ fn print_remove<P: AsRef<Path> + Display>(path: P, key: &str, print_filename: bo
         ),
     }
 }
+
+fn print_clear<P: AsRef<Path> + Display>(
+    path: P, print_filename: bool, verbose: bool, force: bool
+) {
+    let fn_msg = format!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET}");
+    let xattrs = if let Ok(xs) = xattr::list(&path) { xs }
+    else {
+        if print_filename { print!("{fn_msg} "); }
+        println!("{BOLD}{RED}Could not {YELLOW}clear{RED} attributes.{RESET}");
+        return;
+    };
+    if xattrs.clone().next().is_none() {
+        if verbose {
+            println!("{fn_msg} {RED}{BOLD}❌{RESET}");
+        }
+        return;
+    }
+    let mut list = Vec::new();
+    let mut printed_fn = false;
+    for attr in xattrs {
+        match get_osstr(&path, &attr) {
+            Some(((key, KeyType::User), _)) => list.push(key),
+            Some(_) if verbose && print_filename => {
+                if printed_fn {
+                    println!("{fn_msg}");
+                    printed_fn = true;
+                }
+                println!(
+                    "  {RED}{BOLD}cannot {YELLOW}clear{RED} non user attribute!{RESET}"
+                );
+            },
+            _ => { },
+        }
+    }
+    for key in list {
+        let tags_protected = key == "tags" && !force;
+        if print_filename && tags_protected && !printed_fn {
+            println!("{fn_msg}  ");
+            printed_fn = true;
+        }
+        if tags_protected {
+            println!(
+"  {BOLD}{RED}Could not {YELLOW}remove{RED} {DEFAULT}tags{RED} without {YELLOW}force{RED}!{RESET}"
+            );
+            continue;
+        }
+        let res = remove(&path, &key);
+        if (res.is_err() || verbose) && !printed_fn && print_filename {
+            println!("{fn_msg}");
+            printed_fn = true;
+        }
+        match res {
+            Ok(Some(old)) if verbose => println!(
+                "  {GREEN}Attribute {DEFAULT}{key}{GREEN} {YELLOW}removed{GREEN} successfully.
+    Old value was \"{RESET}{old}{GREEN}\".{RESET}"
+            ),
+            Ok(None) if verbose => println!(
+                "{GREEN}Attribute {DEFAULT}{key}{GREEN} {YELLOW}removed{GREEN} successfully.{RESET}"
+            ),
+            Err(_) => println!(
+                "{BOLD}{RED}Could not {YELLOW}remove{RED} attribute {DEFAULT}{key}{RED}.{RESET}"
+            ),
+            _ => { },
+        }
+    }
+}
+
 
 fn print_cut_list<P: AsRef<Path> + Display>(
     path: P, key: &str, value: &str, print_filename: bool, verbose: bool
