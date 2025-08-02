@@ -21,11 +21,13 @@ Reat stands for Rust Extended ATtribute.
 - contains strings in attribute: or, and/all, not
 - dump attribute data
 - restore attribute data from dump
+- clear attributes
 - tags: slight special treatment
 - read paths via stdin: chain reat with itself and others
 
 todo:
 
+- rank
 - index
 - workflows
 - sort

@@ -1,0 +1,170 @@
+.TH man 8 "2 August 2025" "0.6.0" "reat man page"
+
+.SH NAME
+
+reat - Rust Extended Attribute Tool
+
+.SH SYNOPSIS
+
+.B reat
+file*
+
+.B reat
+l/d/rs/cl file*
+
+.B reat cp
+src_file dst_file
+
+.B reat
+.B g/r
+att file*
+
+.B reat
+.B g/r
+att* - file*
+
+.B reat
+file*
+.B g/r
+att*
+
+.B reat
+.B s/a/c/rn
+att val file*
+
+.B reat
+.B s/a/c/rn
+att* val - file*
+
+.B reat
+file*
+.B s/a/c/rn
+att* val
+
+.B reat
+.B cn/cna/cnn
+att - file*
+
+.B reat
+file*
+.B cn/cna/cnn
+att
+
+.B reat
+.B cn/cna/cnn
+att val file*
+
+.B reat
+.B cn/cna/cnn
+att val* - file*
+
+.B reat
+file*
+.B cn/cna/cnn
+att val*
+
+.B reat
+.B rp
+att old_val new_val file*
+
+.B reat
+.B rp
+att* old_val new_val - file*
+
+.B reat
+file*
+.B rp
+att* old_val new_val
+
+.SH DESCRIPTION
+
+reat is a tool for ergonomic use of extended attributes of filesystem objects.
+
+.SH OPTIONS
+
+.TP
+.B verbose (v)
+Print verbose version of output.
+
+.TP
+.B force (f)
+Allow operations that require force.
+
+.TP
+.B list (l)
+List attributes.
+
+.TP
+.B get (g)
+Get attribute.
+
+.TP
+.B set (s)
+Set attribute to value.
+
+.TP
+.B remove (r)
+Remove attribute.
+
+.TP
+.B add (a)
+Add item to list attribute.
+
+.TP
+.B cut (c)
+Cut item from list attribute.
+
+.TP
+.B rename (rn)
+Rename attribute.
+
+.TP
+.B replace (rp)
+Replace item in list attribute with another value.
+
+.TP
+.B copy (cp)
+Copy attributes from source file to destination file.
+
+.TP
+.B contains (cn)
+Return all files that contains value in attribute.
+
+.TP
+.B contains-all (cna)
+Return all files that contain all values in attribute.
+
+.TP
+.B contains-not (cnn)
+Return all files that do not contain any of the values in attribute.
+
+.TP
+.B dump (d)
+Dump attribute data of files.
+
+.TP
+.B restore (rs)
+Restore attribute data of files from dump.
+
+.SH CLI EXAMPLES
+
+.PP
+reat get att file
+
+.SH SEE ALSO
+
+.TP
+attr(1)
+
+.TP
+getfattr(1)
+
+.TP
+setfattr(1)
+
+.SH BUGS
+
+.SH AUTHOR
+
+Cody Bloemhard (codybloemhard@gmail.com)
+https://github.com/codybloemhard/reat
