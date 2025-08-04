@@ -97,6 +97,10 @@ fn main() -> ExitCode {
             mode = "rs";
             into_a = true;
         }
+        else if (arg == "rank" || arg == "ra") && mode == " " {
+            mode = "ra";
+            into_a = true;
+        }
         else if into_a {
             a.push(arg);
         }
@@ -145,7 +149,7 @@ fn main() -> ExitCode {
                 ps.push(path);
             }
         },
-        ("g" | "r", [att, paths @ ..], []) => {
+        ("g" | "r" | "ra", [att, paths @ ..], []) => {
             nps.push(att);
             for path in paths {
                 ps.push(path);
@@ -190,8 +194,10 @@ fn main() -> ExitCode {
         ("g" | "r", [], []) => println!(
 "{BOLD}{RED}No {YELLOW}path{RED} nor {YELLOW}attribute{RED} provided!{RESET}"
         ),
-        ("g" | "r", [], [_]) => println!("{BOLD}{RED}No {YELLOW}attribute{RED} provided!{RESET}"),
-        ("g" | "r", [_], []) => no_path(),
+        ("g" | "r" | "ra", [], [_]) => println!(
+"{BOLD}{RED}No {YELLOW}attribute{RED} provided!{RESET}"
+        ),
+        ("g" | "r" | "ra", [_], []) => no_path(),
         ("g", attrs, paths) => for path in paths { for attr in attrs {
             print_get(path, attr, paths.len() > 1, verbose);
         }},
@@ -257,6 +263,9 @@ fn main() -> ExitCode {
         ("rp", [attrs @ .., old_val, new_val], paths) => for path in paths { for attr in attrs {
             print_replace(path, attr, old_val, new_val, paths.len() > 1, verbose);
         }},
+        ("ra", [attr], paths) => {
+            print_rank(attr, paths);
+        },
         _ => { },
     }
 

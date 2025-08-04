@@ -3,7 +3,7 @@ use crate::core::*;
 use std::{
     path::Path,
     fmt::Display,
-    collections::HashSet,
+    collections::{ HashSet, HashMap },
 };
 
 use zen_colour::*;
@@ -102,8 +102,7 @@ pub fn print_copy<P: AsRef<Path> + Display>(srcp: P, dstp: P) {
             if xattr::set(&dstp, &key, &val).is_err() {
                 ok = false;
                 println!(
-        "{BOLD}{RED}Could not {YELLOW}set{RED} attribute {DEFAULT}{:?}{RED} on destination.{RESET}",
-                    key
+    "{BOLD}{RED}Could not {YELLOW}set{RED} attribute {DEFAULT}{key:?}{RED} on destination.{RESET}",
                 );
             }
         }
@@ -486,3 +485,25 @@ pub fn print_restore(dump: String, paths: &[&String], verbose: bool, force: bool
     }
 }
 
+pub fn print_rank(key: &str, paths: &[&String]) {
+    let mut counts = HashMap::new();
+    let mut total = 0;
+    let mut present = 0;
+    for path in paths {
+        total += 1;
+        if let Some((_, avalue)) = get(path, key) {
+            present += 1;
+            let list = avalue.split(',').map(|s| s.to_string()).collect::<Vec<_>>();
+            for item in list {
+                let count = counts.get(&item).unwrap_or(&0);
+                counts.insert(item.clone(), count + 1);
+            }
+        }
+    }
+    let mut sorted = counts.iter().map(|(k, f)| (f, k)).collect::<Vec<_>>();
+    sorted.sort();
+    for (freq, item) in sorted {
+        println!("{BOLD}{item}{RESET}: {freq}");
+    }
+    println!("{GREEN}{BOLD}total{RESET}{BOLD}:{RESET} {present} / {total}");
+}
