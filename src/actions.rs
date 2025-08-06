@@ -485,10 +485,17 @@ pub fn print_restore(dump: String, paths: &[&String], verbose: bool, force: bool
     }
 }
 
-pub fn print_rank(key: &str, paths: &[&String]) {
+pub fn print_rank(key: &str, paths: &[&String], flag_a: &str, flag_b: &str) {
     let mut counts = HashMap::new();
     let mut total = 0;
     let mut present = 0;
+    let (mut flip, mut reverse) = (false, false);
+    if flag_a == "flip" || flag_b == "flip" {
+        flip = true;
+    }
+    if flag_a == "reverse" || flag_b == "reverse" {
+        reverse = true;
+    }
     for path in paths {
         total += 1;
         if let Some((_, avalue)) = get(path, key) {
@@ -500,10 +507,33 @@ pub fn print_rank(key: &str, paths: &[&String]) {
             }
         }
     }
-    let mut sorted = counts.iter().map(|(k, f)| (f, k)).collect::<Vec<_>>();
-    sorted.sort();
-    for (freq, item) in sorted {
-        println!("{BOLD}{item}{RESET}: {freq}");
+    if reverse {
+        println!("{GREEN}{BOLD}total{RESET}{BOLD}:{RESET} {present} / {total}");
     }
-    println!("{GREEN}{BOLD}total{RESET}{BOLD}:{RESET} {present} / {total}");
+
+    fn do_reverse<T: std::cmp::Ord>(mut v: Vec<T>, reverse: bool) -> Vec<T> {
+        v.sort();
+        let res: Vec<_> = if reverse {
+            v.into_iter().rev().collect()
+        } else {
+            v.into_iter().collect()
+        };
+        res
+    }
+    if !flip {
+        let res = counts.iter().map(|(k, f)| (f, k)).collect::<Vec<_>>();
+        let res = do_reverse(res, reverse);
+        for (freq, item) in res {
+            println!("{BOLD}{item}{RESET}: {freq}");
+        }
+    } else {
+        let res = do_reverse(counts.iter().collect::<Vec<_>>(), reverse);
+        for (item, freq) in res {
+            println!("{BOLD}{item}{RESET}: {freq}");
+        }
+    };
+
+    if !reverse {
+        println!("{GREEN}{BOLD}total{RESET}{BOLD}:{RESET} {present} / {total}");
+    }
 }

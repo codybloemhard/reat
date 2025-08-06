@@ -264,7 +264,13 @@ fn main() -> ExitCode {
             print_replace(path, attr, old_val, new_val, paths.len() > 1, verbose);
         }},
         ("ra", [attr], paths) => {
-            print_rank(attr, paths);
+            print_rank(attr, paths, "", "");
+        },
+        ("ra", [attr, flag], paths) => {
+            print_rank(attr, paths, flag, "");
+        },
+        ("ra", [attr, flag_a, flag_b], paths) => {
+            print_rank(attr, paths, flag_a, flag_b);
         },
         _ => { },
     }

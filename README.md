@@ -27,7 +27,7 @@ Reat stands for Rust Extended ATtribute.
 
 todo:
 
-- rank: flip order, reverse, man page
+- man page: examples
 - index
 - workflows
 - sort
