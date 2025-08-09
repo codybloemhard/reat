@@ -12,11 +12,9 @@ pub fn get<P: AsRef<Path>>(path: P, key: &str) -> Option<((String, KeyType), Str
 pub fn get_osstr<P: AsRef<Path>>(path: P, key: &OsStr) -> Option<((String, KeyType), String)> {
     if let Some(key) = key.to_str() {
         let val = xattr::get(path, key);
-        if let Ok(Some(val)) = val {
-            if let Ok(string) = String::from_utf8(val) {
-                let (key, kt) = split_key(key);
-                return Some(((key.to_string(), kt), string));
-            }
+        if let Ok(Some(val)) = val && let Ok(string) = String::from_utf8(val) {
+            let (key, kt) = split_key(key);
+            return Some(((key.to_string(), kt), string));
         }
     }
     None
@@ -99,7 +97,11 @@ pub fn replace_list<P: AsRef<Path>>(
         if !list.contains(&old_value) {
             return None;
         }
-        list.iter_mut().for_each(|item| if *item == old_value { *item = new_value; });
+        for item in &mut list {
+            if *item == old_value {
+                *item = new_value;
+            }
+        }
         let mut res = String::new();
         for item in list {
             res.push_str(item);

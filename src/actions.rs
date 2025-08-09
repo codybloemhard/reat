@@ -9,7 +9,7 @@ use std::{
 use zen_colour::*;
 
 pub fn print_list<P: AsRef<Path> + Display>(path: P, print_filename: bool, verbose: bool) {
-    let xattrs = if let Ok(xs) = xattr::list(&path) { xs }
+    let Ok(xattrs) = xattr::list(&path)
     else {
         println!(
             "{BOLD}{GREEN}{path}{RESET}{RED}{BOLD}: could not {YELLOW}list{RED} attributes.{RESET}"
@@ -56,7 +56,7 @@ pub fn print_list<P: AsRef<Path> + Display>(path: P, print_filename: bool, verbo
 
 
 pub fn print_dump<P: AsRef<Path> + Display>(path: P) {
-    let xattrs = if let Ok(xs) = xattr::list(&path) { xs }
+    let Ok(xattrs) = xattr::list(&path)
     else {
         println!("{path}\nfail");
         return;
@@ -70,9 +70,7 @@ pub fn print_dump<P: AsRef<Path> + Display>(path: P) {
     for attr in xattrs {
         match get_osstr(&path, &attr) {
             Some(((key, KeyType::User), value)) => list.push((key, value)),
-            Some(((_, KeyType::System), _)) => dropped += 1,
-            Some(((_, KeyType::Trusted), _)) => dropped += 1,
-            Some(((_, KeyType::Security), _)) => dropped += 1,
+            Some(((_, KeyType::System | KeyType::Trusted | KeyType::Security), _)) => dropped += 1,
             None => { },
         }
     }
@@ -88,7 +86,7 @@ pub fn print_dump<P: AsRef<Path> + Display>(path: P) {
 }
 
 pub fn print_copy<P: AsRef<Path> + Display>(srcp: P, dstp: P) {
-    let xattrs = if let Ok(xs) = xattr::list(&srcp) { xs }
+    let Ok(xattrs ) = xattr::list(&srcp)
     else {
         println!(
     "{BOLD}{GREEN}{srcp}{RESET}{RED}{BOLD}: could not {YELLOW}copy{RED} from attributes.{RESET}"
@@ -98,13 +96,11 @@ pub fn print_copy<P: AsRef<Path> + Display>(srcp: P, dstp: P) {
     let mut ok = true;
     for key in xattrs {
         let val = xattr::get(&srcp, &key);
-        if let Ok(Some(val)) = val {
-            if xattr::set(&dstp, &key, &val).is_err() {
-                ok = false;
-                println!(
-    "{BOLD}{RED}Could not {YELLOW}set{RED} attribute {DEFAULT}{key:?}{RED} on destination.{RESET}",
-                );
-            }
+        if let Ok(Some(val)) = val && xattr::set(&dstp, &key, &val).is_err() {
+            ok = false;
+            println!(
+"{BOLD}{RED}Could not {YELLOW}set{RED} attribute {DEFAULT}{key:?}{RED} on destination.{RESET}",
+            );
         }
     }
     if ok {
@@ -196,7 +192,7 @@ pub fn print_clear<P: AsRef<Path> + Display>(
     path: P, print_filename: bool, verbose: bool, force: bool
 ) {
     let fn_msg = format!("{BOLD}{GREEN}{path}{RESET}{GREEN}:{RESET}");
-    let xattrs = if let Ok(xs) = xattr::list(&path) { xs }
+    let Ok(xattrs) = xattr::list(&path)
     else {
         if print_filename { print!("{fn_msg} "); }
         println!("{BOLD}{RED}Could not {YELLOW}clear{RED} attributes.{RESET}");
@@ -394,7 +390,7 @@ pub fn print_replace<P: AsRef<Path> + Display>(
     }
 }
 
-pub fn print_restore(dump: String, paths: &[&String], verbose: bool, force: bool) {
+pub fn print_restore(dump: &str, paths: &[&String], verbose: bool, force: bool) {
     let check = !paths.is_empty();
     let mut paths_set = HashSet::new();
     if check {
@@ -500,7 +496,7 @@ pub fn print_rank(key: &str, paths: &[&String], flag_a: &str, flag_b: &str) {
         total += 1;
         if let Some((_, avalue)) = get(path, key) {
             present += 1;
-            let list = avalue.split(',').map(|s| s.to_string()).collect::<Vec<_>>();
+            let list = avalue.split(',').map(ToString::to_string).collect::<Vec<_>>();
             for item in list {
                 let count = counts.get(&item).unwrap_or(&0);
                 counts.insert(item.clone(), count + 1);
@@ -520,18 +516,19 @@ pub fn print_rank(key: &str, paths: &[&String], flag_a: &str, flag_b: &str) {
         };
         res
     }
-    if !flip {
+
+    if flip {
+        let res = do_reverse(counts.iter().collect::<Vec<_>>(), reverse);
+        for (item, freq) in res {
+            println!("{BOLD}{item}{RESET}: {freq}");
+        }
+    } else {
         let res = counts.iter().map(|(k, f)| (f, k)).collect::<Vec<_>>();
         let res = do_reverse(res, reverse);
         for (freq, item) in res {
             println!("{BOLD}{item}{RESET}: {freq}");
         }
-    } else {
-        let res = do_reverse(counts.iter().collect::<Vec<_>>(), reverse);
-        for (item, freq) in res {
-            println!("{BOLD}{item}{RESET}: {freq}");
-        }
-    };
+    }
 
     if !reverse {
         println!("{GREEN}{BOLD}total{RESET}{BOLD}:{RESET} {present} / {total}");

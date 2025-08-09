@@ -183,7 +183,7 @@ fn main() -> ExitCode {
             print_dump(path);
         },
         ("rs", _, paths) => {
-            print_restore(dump, paths, verbose, force);
+            print_restore(&dump, paths, verbose, force);
         },
         ("cl", _, paths) => for path in paths {
             print_clear(path, paths.len() > 1, verbose, force);
