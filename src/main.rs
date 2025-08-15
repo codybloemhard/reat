@@ -263,6 +263,17 @@ fn main() -> ExitCode {
         ("rp", [attrs @ .., old_val, new_val], paths) => for path in paths { for attr in attrs {
             print_replace(path, attr, old_val, new_val, paths.len() > 1, verbose);
         }},
+        ("ra", [], paths) => {
+            print_rank("", paths, "", "");
+        },
+        ("ra", [fa], paths) if *fa == "flip" || *fa == "reverse" => {
+            print_rank("", paths, fa, "");
+        },
+        ("ra", [fa, fb], paths)
+            if (*fa == "flip" || *fa == "reverse") && (*fb == "flip" || *fb == "reverse") =>
+        {
+            print_rank("", paths, fa, fb);
+        },
         ("ra", [attr], paths) => {
             print_rank(attr, paths, "", "");
         },

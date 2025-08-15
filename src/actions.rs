@@ -494,7 +494,16 @@ pub fn print_rank(key: &str, paths: &[&String], flag_a: &str, flag_b: &str) {
     }
     for path in paths {
         total += 1;
-        if let Some((_, avalue)) = get(path, key) {
+        if key.is_empty() {
+            if let Ok(xattrs) = xattr::list(path) {
+                for attr in xattrs {
+                    if let Some(((key, _), _)) = get_osstr(path, &attr) {
+                        let count = counts.get(&key).unwrap_or(&0);
+                        counts.insert(key.clone(), count + 1);
+                    }
+                }
+            }
+        } else if let Some((_, avalue)) = get(path, key) {
             present += 1;
             let list = avalue.split(',').map(ToString::to_string).collect::<Vec<_>>();
             for item in list {
