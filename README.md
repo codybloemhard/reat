@@ -22,16 +22,20 @@ Reat stands for Rust Extended ATtribute.
 - dump attribute data
 - restore attribute data from dump
 - clear attributes
+- rank attrbutes and attribute values
 - tags: slight special treatment
 - read paths via stdin: chain reat with itself and others
 
 todo:
 
 - man page: examples
+- help: refer to man page
+
+might do:
+
 - index
 - workflows
 - sort
-- help
 
 cli interface argument orders:
 
